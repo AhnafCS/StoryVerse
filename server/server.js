@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
+import analysisRoutes from './routes/analysis.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api', analysisRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
