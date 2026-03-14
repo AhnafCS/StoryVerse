@@ -1,14 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const api = {
-  // Auth endpoints
   auth: {
     register: async (userData: { email: string; password: string; name: string }) => {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
       
@@ -23,9 +20,7 @@ export const api = {
     login: async (credentials: { email: string; password: string }) => {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
       
@@ -38,7 +33,6 @@ export const api = {
     },
   },
 
-  // Helper method for authenticated requests
   authenticatedRequest: async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('token');
     

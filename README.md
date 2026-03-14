@@ -34,12 +34,17 @@ StoryVerse/
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- MongoDB (local installation or MongoDB Atlas)
+- MongoDB (local or Atlas cloud database)
 - npm or yarn
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd StoryVerse
+   ```
+
 2. Install backend dependencies:
    ```bash
    cd server
@@ -54,37 +59,87 @@ StoryVerse/
 
 ### Environment Setup
 
-Create environment files:
+#### Backend (.env in server folder)
 
-**Backend (.env)**:
 ```env
 PORT=5000
+NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/storyverse
 JWT_SECRET=your_jwt_secret_key_here
-NODE_ENV=development
+JWT_EXPIRE=7d
+BCRYPT_SALT_ROUNDS=12
+FRONTEND_URL=http://localhost:8080
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
 ```
 
-**Frontend (.env)**:
+**Note:** For MongoDB Atlas, use:
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/storyverse?retryWrites=true&w=majority
+```
+
+#### Frontend (.env in root folder)
+
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_APP_NAME=StoryVerse
+VITE_APP_VERSION=1.0.0
+VITE_NODE_ENV=development
 ```
+
+### Database Setup
+
+**Local MongoDB:**
+1. Install MongoDB Community Edition
+2. Start MongoDB service
+3. Database creates automatically on first run
+
+**MongoDB Atlas:**
+1. Create cluster at mongodb.com
+2. Create database user
+3. Whitelist your IP address
+4. Copy connection string to MONGODB_URI
 
 ### Running the Application
 
-1. Start the backend server:
+1. Start the backend server (Terminal 1):
    ```bash
    cd server
    npm run dev
+   # or: node server.js
    ```
 
-2. Start the frontend development server:
+2. Start the frontend (Terminal 2):
    ```bash
    npm run dev
    ```
 
-The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
+3. Access the application:
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:5000
+   - Health Check: http://localhost:5000/api/health
+
+### Troubleshooting
+
+**Port 5000 already in use:**
+```bash
+# Windows
+netstat -ano | findstr :5000
+taskkill /F /PID <PID>
+
+# Or kill all node processes
+taskkill /F /IM node.exe
+```
+
+**MongoDB connection failed:**
+- Verify MongoDB service is running
+- Check connection string in .env
+- For Atlas: verify IP whitelist and credentials
+
+**CORS errors:**
+- Ensure FRONTEND_URL matches your actual frontend port
+- Default ports: 8080 (Vite) or 5173
 
 ## API Endpoints
 

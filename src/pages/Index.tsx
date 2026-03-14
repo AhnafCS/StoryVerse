@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import StoryVerseLogo from "@/components/StoryVerseLogo";
-import AuthForm from "@/components/AuthForm";
-import Sparkles from "@/components/Sparkles";
+import StoryVerseLogo from "@/views/StoryVerseLogo";
+import AuthForm from "@/views/AuthForm";
+import Sparkles from "@/views/Sparkles";
 
 const Index = () => {
   const [showAuth, setShowAuth] = useState(false);

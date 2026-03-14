@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
-import { api } from "@/lib/api";
+import { AuthController } from "../controllers/authController";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -21,20 +21,18 @@ const AuthForm = () => {
 
     try {
       if (isSignUp) {
-        await api.auth.register(formData);
+        const response = await AuthController.register(formData);
+        AuthController.saveAuthData(response.token, response.user);
         toast.success("Account created successfully!");
         setIsSignUp(false);
       } else {
-        const response = await api.auth.login({
+        const response = await AuthController.login({
           email: formData.email,
           password: formData.password,
         });
         
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        AuthController.saveAuthData(response.token, response.user);
         toast.success("Logged in successfully!");
-        
-        // Redirect to home feed
         navigate('/feed');
       }
     } catch (error: any) {
@@ -53,7 +51,6 @@ const AuthForm = () => {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      {/* Tab toggle */}
       <div className="flex mb-8 border-b border-border">
         <button
           onClick={() => setIsSignUp(false)}
@@ -77,16 +74,11 @@ const AuthForm = () => {
         </button>
       </div>
 
-      <form
-        className={`space-y-5 transition-all duration-300`}
-        onSubmit={handleSubmit}
-      >
+      <form className="space-y-5 transition-all duration-300" onSubmit={handleSubmit}>
           {isSignUp && (
-            <div
-              className={`transition-all duration-300 overflow-hidden ${
-                isSignUp ? "opacity-100 max-h-32" : "opacity-0 max-h-0"
-              }`}
-            >
+            <div className={`transition-all duration-300 overflow-hidden ${
+              isSignUp ? "opacity-100 max-h-32" : "opacity-0 max-h-0"
+            }`}>
               <label className="block text-xs tracking-widest uppercase text-muted-foreground mb-2 font-body">
                 Full Name
               </label>
