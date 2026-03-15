@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Heart, MessageCircle, TrendingUp, Book, Film, Tv,
   Star, MoreHorizontal, Home, Compass, Bookmark, Settings, User,
-  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain
+  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight
 } from "lucide-react";
 
 const HomeFeed = () => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
@@ -849,26 +847,6 @@ const HomeFeed = () => {
                   {item.label}
                 </button>
               ))}
-              <button 
-                className="sv-nav-item" 
-                onClick={() => navigate('/psychology')}
-                style={{ marginTop: 8 }}
-              >
-                <Brain size={16} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Psychology
-                  <span style={{ 
-                    fontSize: 9, 
-                    fontWeight: 600, 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    padding: '2px 6px',
-                    background: 'var(--purple)',
-                    color: 'white',
-                    borderRadius: 4
-                  }}>AI</span>
-                </span>
-              </button>
             </nav>
 
             <div className="sv-divider" />

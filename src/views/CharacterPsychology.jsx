@@ -481,7 +481,7 @@ const CharacterPsychology = () => {
               border: '1px solid rgba(99,44,255,0.3)',
               marginBottom: 24
             }}>
-              <Sparkles size={13} color="#a78bfa" />
+              {/* <Sparkles size={13} color="#a78bfa" /> */}
               <span style={{
                 fontFamily: "'DM Mono', monospace",
                 fontSize: 11, fontWeight: 600, letterSpacing: '0.18em',
@@ -511,7 +511,7 @@ const CharacterPsychology = () => {
               fontSize: 14, color: 'rgba(255,255,255,0.35)',
               letterSpacing: '0.04em', margin: 0
             }}>
-              Uncover the hidden depths within — one character at a time.
+              Uncover the hidden depths of characters.
             </p>
           </div>
 
