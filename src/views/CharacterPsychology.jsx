@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
+import { useTheme } from '../hooks/useTheme';
 import {
   Chart as ChartJS,
   RadialLinearScale,
@@ -11,45 +12,56 @@ import {
   Legend
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
-import { Brain, Sparkles, User, Plus, Activity, Zap, Heart, Sword, Crown, Ghost, Target, X, ChevronRight } from 'lucide-react';
+import { Brain, Sparkles, User, Plus, Activity, Zap, Heart, Sword, Crown, Ghost, Target, X, ChevronRight, Sun, Moon } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 /* ─── Ambient background with noise + orbs ──────────────────────────────── */
-const AmbientBackground = () => (
+const AmbientBackground = ({ isDark }) => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
     <div style={{
       position: 'absolute', inset: 0,
-      background: 'radial-gradient(ellipse 80% 60% at 20% 10%, #0d0221 0%, #020008 60%, #000 100%)'
+      background: isDark 
+        ? 'radial-gradient(ellipse 80% 60% at 20% 10%, #0d0221 0%, #020008 60%, #000 100%)'
+        : 'radial-gradient(ellipse 80% 60% at 20% 10%, #f8f7ff 0%, #f0edff 60%, #e8e4f3 100%)'
     }} />
     {/* Glowing orbs */}
     <div style={{
       position: 'absolute', top: '-10%', left: '-5%',
       width: 600, height: 600,
-      background: 'radial-gradient(circle, rgba(99,44,255,0.18) 0%, transparent 70%)',
+      background: isDark 
+        ? 'radial-gradient(circle, rgba(99,44,255,0.18) 0%, transparent 70%)'
+        : 'radial-gradient(circle, rgba(99,44,255,0.12) 0%, transparent 70%)',
       borderRadius: '50%',
       animation: 'orbDrift1 18s ease-in-out infinite'
     }} />
     <div style={{
       position: 'absolute', bottom: '-15%', right: '-10%',
       width: 700, height: 700,
-      background: 'radial-gradient(circle, rgba(0,210,180,0.10) 0%, transparent 70%)',
+      background: isDark 
+        ? 'radial-gradient(circle, rgba(0,210,180,0.10) 0%, transparent 70%)'
+        : 'radial-gradient(circle, rgba(0,210,180,0.06) 0%, transparent 70%)',
       borderRadius: '50%',
       animation: 'orbDrift2 22s ease-in-out infinite'
     }} />
     <div style={{
       position: 'absolute', top: '40%', left: '50%',
       width: 400, height: 400,
-      background: 'radial-gradient(circle, rgba(180,0,255,0.07) 0%, transparent 70%)',
+      background: isDark 
+        ? 'radial-gradient(circle, rgba(180,0,255,0.07) 0%, transparent 70%)'
+        : 'radial-gradient(circle, rgba(180,0,255,0.05) 0%, transparent 70%)',
       borderRadius: '50%',
       animation: 'orbDrift3 15s ease-in-out infinite'
     }} />
     {/* Subtle grid lines */}
     <div style={{
       position: 'absolute', inset: 0,
-      backgroundImage: `
+      backgroundImage: isDark ? `
         linear-gradient(rgba(99,44,255,0.04) 1px, transparent 1px),
         linear-gradient(90deg, rgba(99,44,255,0.04) 1px, transparent 1px)
+      ` : `
+        linear-gradient(rgba(99,44,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,44,255,0.03) 1px, transparent 1px)
       `,
       backgroundSize: '80px 80px'
     }} />
@@ -73,21 +85,21 @@ const AmbientBackground = () => (
 );
 
 /* ─── Glass card ─────────────────────────────────────────────────────────── */
-const GlassCard = ({ children, className = '', style = {}, accent = false }) => (
+const GlassCard = ({ children, className = '', style = {}, accent = false, isDark }) => (
   <div
     className={className}
     style={{
       position: 'relative',
-      background: 'rgba(10,4,28,0.7)',
+      background: isDark ? 'rgba(10,4,28,0.7)' : 'rgba(255,255,255,0.85)',
       backdropFilter: 'blur(24px)',
       WebkitBackdropFilter: 'blur(24px)',
       border: accent
-        ? '1px solid rgba(99,44,255,0.45)'
-        : '1px solid rgba(255,255,255,0.07)',
+        ? (isDark ? '1px solid rgba(99,44,255,0.45)' : '1px solid rgba(99,44,255,0.35)')
+        : (isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)'),
       borderRadius: 20,
       boxShadow: accent
-        ? '0 0 40px rgba(99,44,255,0.15), inset 0 1px 0 rgba(255,255,255,0.06)'
-        : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        ? (isDark ? '0 0 40px rgba(99,44,255,0.15), inset 0 1px 0 rgba(255,255,255,0.06)' : '0 0 40px rgba(99,44,255,0.1), inset 0 1px 0 rgba(255,255,255,0.8)')
+        : (isDark ? 'inset 0 1px 0 rgba(255,255,255,0.04)' : '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)'),
       overflow: 'hidden',
       ...style
     }}
@@ -95,30 +107,30 @@ const GlassCard = ({ children, className = '', style = {}, accent = false }) => 
     {/* top sheen */}
     <div style={{
       position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)'
+      background: isDark 
+        ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)'
+        : 'linear-gradient(90deg, transparent, rgba(99,44,255,0.2), transparent)'
     }} />
     {children}
   </div>
 );
 
 /* ─── Section label ──────────────────────────────────────────────────────── */
-const SectionLabel = ({ icon: Icon, children, color = '#7c3aed' }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+const SectionLabel = ({ icon: Icon, children, color = '#7c3aed', isDark }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
     <div style={{
-      width: 34, height: 34, borderRadius: 10,
+      width: 38, height: 38, borderRadius: 12,
       background: `${color}22`,
       border: `1px solid ${color}55`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0
     }}>
-      <Icon size={16} color={color} />
+      <Icon size={18} color={color} />
     </div>
-    <span style={{
-      fontFamily: "'DM Mono', 'Fira Code', monospace",
-      fontSize: 11, fontWeight: 600,
-      letterSpacing: '0.2em', textTransform: 'uppercase',
-      color: 'rgba(255,255,255,0.45)'
-    }}>
+    <span 
+      className="cp-section-label"
+      style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}
+    >
       {children}
     </span>
   </div>
@@ -152,7 +164,7 @@ const TraitPill = ({ type, text }) => {
 };
 
 /* ─── Score ring ─────────────────────────────────────────────────────────── */
-const ScoreRing = ({ icon: Icon, label, value, color }) => {
+const ScoreRing = ({ icon: Icon, label, value, color, isDark }) => {
   const r = 32;
   const circ = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, value || 0));
@@ -162,7 +174,7 @@ const ScoreRing = ({ icon: Icon, label, value, color }) => {
     <div style={{ textAlign: 'center' }}>
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width={90} height={90} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={45} cy={45} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} />
+          <circle cx={45} cy={45} r={r} fill="none" stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"} strokeWidth={6} />
           <circle
             cx={45} cy={45} r={r} fill="none"
             stroke={color} strokeWidth={6}
@@ -173,7 +185,7 @@ const ScoreRing = ({ icon: Icon, label, value, color }) => {
         </svg>
         <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <Icon size={14} color={color} />
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 700, color: '#fff' }}>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1a1a1a' }}>
             {value}
           </span>
         </div>
@@ -183,7 +195,7 @@ const ScoreRing = ({ icon: Icon, label, value, color }) => {
         fontFamily: "'DM Mono', monospace",
         fontSize: 10, fontWeight: 600,
         letterSpacing: '0.15em', textTransform: 'uppercase',
-        color: 'rgba(255,255,255,0.35)'
+        color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)'
       }}>
         {label}
       </div>
@@ -192,32 +204,32 @@ const ScoreRing = ({ icon: Icon, label, value, color }) => {
 };
 
 /* ─── Character list item ────────────────────────────────────────────────── */
-const CharacterItem = ({ character, isSelected, onClick }) => (
+const CharacterItem = ({ character, isSelected, onClick, isDark }) => (
   <button
     onClick={onClick}
     style={{
       width: '100%', textAlign: 'left', cursor: 'pointer',
       padding: '14px 16px',
       borderRadius: 14,
-      border: isSelected ? '1px solid rgba(99,44,255,0.5)' : '1px solid rgba(255,255,255,0.05)',
-      background: isSelected ? 'rgba(99,44,255,0.12)' : 'rgba(255,255,255,0.02)',
+      border: isSelected ? '1px solid rgba(99,44,255,0.5)' : (isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)'),
+      background: isSelected ? 'rgba(99,44,255,0.12)' : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'),
       display: 'flex', alignItems: 'center', gap: 14,
       transition: 'all 0.25s ease',
       boxShadow: isSelected ? '0 0 24px rgba(99,44,255,0.12)' : 'none',
       outline: 'none'
     }}
-    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'; }}
+    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'; }}
   >
     <div style={{
       width: 40, height: 40, borderRadius: 12, flexShrink: 0,
       background: isSelected
         ? 'linear-gradient(135deg, #6c2aff, #b44fff)'
-        : 'rgba(255,255,255,0.06)',
+        : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: "'DM Mono', monospace",
       fontSize: 16, fontWeight: 700,
-      color: isSelected ? '#fff' : 'rgba(255,255,255,0.3)',
+      color: isSelected ? '#fff' : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)'),
       boxShadow: isSelected ? '0 4px 16px rgba(99,44,255,0.4)' : 'none',
       transition: 'all 0.25s ease'
     }}>
@@ -227,25 +239,25 @@ const CharacterItem = ({ character, isSelected, onClick }) => (
       <div style={{
         fontFamily: "'DM Mono', monospace",
         fontSize: 14, fontWeight: 600,
-        color: isSelected ? '#d4b4ff' : 'rgba(255,255,255,0.75)',
+        color: isSelected ? '#7c3aed' : (isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.8)'),
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
       }}>
         {character.name}
       </div>
       <div style={{
         fontSize: 12, marginTop: 3,
-        color: 'rgba(255,255,255,0.3)',
+        color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.45)',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
       }}>
         {character.description}
       </div>
     </div>
-    <ChevronRight size={14} color={isSelected ? '#a78bfa' : 'rgba(255,255,255,0.15)'} />
+    <ChevronRight size={14} color={isSelected ? '#7c3aed' : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)')} />
   </button>
 );
 
 /* ─── Alignment grid ─────────────────────────────────────────────────────── */
-const AlignmentGrid = ({ activeAlignment }) => {
+const AlignmentGrid = ({ activeAlignment, isDark }) => {
   const cells = [
     'Lawful Good', 'Neutral Good', 'Chaotic Good',
     'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
@@ -267,9 +279,9 @@ const AlignmentGrid = ({ activeAlignment }) => {
             padding: '12px 8px', borderRadius: 12, textAlign: 'center',
             fontFamily: "'DM Mono', monospace",
             fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
-            background: active ? col.bg : 'rgba(255,255,255,0.03)',
-            border: active ? 'none' : '1px solid rgba(255,255,255,0.06)',
-            color: active ? '#fff' : 'rgba(255,255,255,0.22)',
+            background: active ? col.bg : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'),
+            border: active ? 'none' : (isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)'),
+            color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.4)'),
             transform: active ? 'scale(1.07)' : 'scale(1)',
             boxShadow: active ? `0 8px 28px -4px ${col.glow}66` : 'none',
             transition: 'all 0.4s cubic-bezier(.4,0,.2,1)',
@@ -284,7 +296,7 @@ const AlignmentGrid = ({ activeAlignment }) => {
 };
 
 /* ─── Primary button ─────────────────────────────────────────────────────── */
-const Btn = ({ onClick, children, icon: Icon, disabled, variant = 'primary', fullWidth = false }) => {
+const Btn = ({ onClick, children, icon: Icon, disabled, variant = 'primary', fullWidth = false, isDark }) => {
   const styles = {
     primary: {
       background: 'linear-gradient(135deg, #6c2aff 0%, #b44fff 100%)',
@@ -293,9 +305,9 @@ const Btn = ({ onClick, children, icon: Icon, disabled, variant = 'primary', ful
       boxShadow: '0 4px 24px rgba(99,44,255,0.4)'
     },
     secondary: {
-      background: 'rgba(255,255,255,0.05)',
-      color: 'rgba(255,255,255,0.7)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+      border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)',
       boxShadow: 'none'
     },
     glow: {
@@ -333,15 +345,19 @@ const Btn = ({ onClick, children, icon: Icon, disabled, variant = 'primary', ful
 };
 
 /* ─── Divider ────────────────────────────────────────────────────────────── */
-const Divider = () => (
+const Divider = ({ isDark }) => (
   <div style={{
     height: 1, margin: '20px 0',
-    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)'
+    background: isDark 
+      ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)'
+      : 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)'
   }} />
 );
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 const CharacterPsychology = () => {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [characters, setCharacters] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -405,40 +421,25 @@ const CharacterPsychology = () => {
     scales: {
       r: {
         beginAtZero: true, max: 100,
-        ticks: { stepSize: 25, color: 'rgba(255,255,255,0.25)', backdropColor: 'transparent', font: { size: 10 } },
-        grid: { color: 'rgba(255,255,255,0.07)', circular: true },
-        angleLines: { color: 'rgba(255,255,255,0.1)' },
-        pointLabels: { color: 'rgba(255,255,255,0.6)', font: { size: 12, weight: '500', family: "'DM Mono', monospace" } }
+        ticks: { stepSize: 25, color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.35)', backdropColor: 'transparent', font: { size: 10 } },
+        grid: { color: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)', circular: true },
+        angleLines: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+        pointLabels: { color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', font: { size: 12, weight: '500', family: "'DM Mono', monospace" } }
       }
     },
     plugins: { legend: { display: false } }
   };
 
   return (
-    <>
+    <div 
+      key={isDark ? 'dark' : 'light'}
+      style={{ minHeight: '100vh' }}
+    >
       {/* Load Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
 
         * { box-sizing: border-box; }
-
-        .cp-input {
-          width: 100%;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-          padding: 13px 16px;
-          color: rgba(255,255,255,0.85);
-          font-family: 'DM Mono', monospace;
-          font-size: 13px;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .cp-input::placeholder { color: rgba(255,255,255,0.2); }
-        .cp-input:focus {
-          border-color: rgba(99,44,255,0.5);
-          box-shadow: 0 0 0 3px rgba(99,44,255,0.12);
-        }
 
         .cp-scroll::-webkit-scrollbar { width: 4px; }
         .cp-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -460,9 +461,41 @@ const CharacterPsychology = () => {
           0%,100% { box-shadow: 0 0 20px rgba(99,44,255,0.15); }
           50%      { box-shadow: 0 0 40px rgba(99,44,255,0.35); }
         }
+
+        .cp-title {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: clamp(56px, 8vw, 96px);
+          font-weight: 900;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          margin: 0 0 16px;
+        }
+
+        .cp-subtitle {
+          font-family: 'DM Mono', monospace;
+          font-size: 18px;
+          letter-spacing: 0.04em;
+          margin: 0;
+        }
+
+        .cp-section-label {
+          font-family: 'DM Mono', 'Fira Code', monospace;
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+        }
+
+        .cp-badge {
+          font-family: 'DM Mono', monospace;
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
       `}</style>
 
-      <AmbientBackground />
+      <AmbientBackground isDark={isDark} />
 
       <div style={{
         position: 'relative', zIndex: 10,
@@ -470,47 +503,106 @@ const CharacterPsychology = () => {
         padding: '48px 24px',
         fontFamily: 'system-ui, sans-serif'
       }}>
+        {/* Back button */}
+        <button
+          onClick={() => window.location.href = '/feed'}
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            borderRadius: 12,
+            background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)',
+            color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: 'none',
+            zIndex: 20
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)';
+            e.currentTarget.style.transform = 'translateX(-2px)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+            e.currentTarget.style.transform = 'translateX(0)';
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="anim-fadeup" style={{ marginBottom: 56, textAlign: 'center' }}>
+            {/* Theme Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+              <button
+                onClick={toggleTheme}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 14px',
+                  borderRadius: 999,
+                  background: isDark ? 'rgba(99,44,255,0.15)' : 'rgba(99,44,255,0.1)',
+                  border: isDark ? '1px solid rgba(99,44,255,0.3)' : '1px solid rgba(99,44,255,0.2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isDark ? <Sun size={16} color="#fbbf24" /> : <Moon size={16} color="#6c2aff" />}
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: isDark ? '#fbbf24' : '#6c2aff'
+                }}>
+                  {isDark ? 'Light' : 'Dark'}
+                </span>
+              </button>
+            </div>
+
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '7px 18px', borderRadius: 999,
-              background: 'rgba(99,44,255,0.1)',
-              border: '1px solid rgba(99,44,255,0.3)',
-              marginBottom: 24
+              padding: '8px 20px', borderRadius: 999,
+              background: isDark ? 'rgba(99,44,255,0.15)' : 'rgba(99,44,255,0.1)',
+              border: isDark ? '1px solid rgba(99,44,255,0.35)' : '1px solid rgba(99,44,255,0.25)',
+              marginBottom: 28,
+              transition: 'all 0.3s ease'
             }}>
-              {/* <Sparkles size={13} color="#a78bfa" /> */}
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.18em',
-                textTransform: 'uppercase', color: '#a78bfa'
-              }}>
+              <span 
+                className="cp-badge"
+                style={{ color: isDark ? '#a78bfa' : '#7c3aed' }}
+              >
                 AI-Powered Psychology Engine
               </span>
             </div>
 
-            <h1 style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontSize: 'clamp(42px, 6vw, 72px)',
-              fontWeight: 900,
-              lineHeight: 1.05,
-              margin: '0 0 16px',
-              background: 'linear-gradient(145deg, #ffffff 20%, #c4a7ff 60%, #7c3aed 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '-0.02em'
-            }}>
-              Character<br />
-              <em>Psychology</em>
+            <h1 
+              className="cp-title"
+              style={{
+                color: isDark ? '#ffffff' : '#6c2aff',
+                transition: 'color 0.4s ease'
+              }}
+            >
+              Character{" "}
+              <em style={{ fontStyle: 'italic' }}>Psychology</em>
             </h1>
 
-            <p style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 14, color: 'rgba(255,255,255,0.35)',
-              letterSpacing: '0.04em', margin: 0
-            }}>
+            <p 
+              className="cp-subtitle"
+              style={{ color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.55)' }}
+            >
               Uncover the hidden depths of characters.
             </p>
           </div>
@@ -525,8 +617,8 @@ const CharacterPsychology = () => {
 
             {/* ── LEFT: Character panel ──────────────────────────────────── */}
             <div className="anim-fadeup anim-delay-1" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <GlassCard style={{ padding: 24 }} accent>
-                <SectionLabel icon={User} color="#a78bfa">Characters</SectionLabel>
+              <GlassCard style={{ padding: 24 }} accent isDark={isDark}>
+                <SectionLabel icon={User} color="#a78bfa" isDark={isDark}>Characters</SectionLabel>
 
                 {/* Create form toggle */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8, marginBottom: 16 }}>
@@ -534,6 +626,7 @@ const CharacterPsychology = () => {
                     onClick={() => setShowCreateForm(!showCreateForm)}
                     icon={showCreateForm ? X : Plus}
                     variant="secondary"
+                    isDark={isDark}
                   >
                     {showCreateForm ? 'Cancel' : 'New Character'}
                   </Btn>
@@ -549,19 +642,42 @@ const CharacterPsychology = () => {
                   }}>
                     <form onSubmit={createCharacter} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <input
-                        className="cp-input"
                         type="text"
                         placeholder="Character name…"
                         value={newCharacter.name}
                         onChange={e => setNewCharacter({ ...newCharacter, name: e.target.value })}
                         required
+                        style={{
+                          width: '100%',
+                          background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
+                          borderRadius: 12,
+                          padding: '13px 16px',
+                          color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 15,
+                          outline: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
                       />
                       <textarea
-                        className="cp-input"
                         placeholder="Personality, background, motivations, flaws…"
                         value={newCharacter.description}
                         onChange={e => setNewCharacter({ ...newCharacter, description: e.target.value })}
-                        style={{ height: 110, resize: 'none' }}
+                        style={{ 
+                          height: 110, 
+                          resize: 'none',
+                          width: '100%',
+                          background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
+                          borderRadius: 12,
+                          padding: '13px 16px',
+                          color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 15,
+                          outline: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
                         required
                       />
                       <Btn onClick={createCharacter} icon={Sparkles} variant="primary" fullWidth>
@@ -577,7 +693,7 @@ const CharacterPsychology = () => {
                     <div style={{
                       textAlign: 'center', padding: '32px 0',
                       fontFamily: "'DM Mono', monospace",
-                      fontSize: 12, color: 'rgba(255,255,255,0.2)',
+                      fontSize: 14, color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)',
                       letterSpacing: '0.08em'
                     }}>
                       No characters yet.<br />Create one above.
@@ -589,6 +705,7 @@ const CharacterPsychology = () => {
                         character={char}
                         isSelected={selectedCharacter?._id === char._id}
                         onClick={() => { setSelectedCharacter(char); setAnalysis(null); }}
+                        isDark={isDark}
                       />
                     ))
                   )}
@@ -597,7 +714,7 @@ const CharacterPsychology = () => {
                 {/* Analyze CTA */}
                 {selectedCharacter && !analysis && (
                   <>
-                    <Divider />
+                    <Divider isDark={isDark} />
                     <Btn
                       onClick={analyzeCharacter}
                       disabled={isAnalyzing}
@@ -620,50 +737,50 @@ const CharacterPsychology = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                   {/* Radar chart */}
-                  <GlassCard className="anim-fadeup" style={{ padding: 28 }} accent>
-                    <SectionLabel icon={Activity} color="#a78bfa">Psychological Profile</SectionLabel>
+                  <GlassCard className="anim-fadeup" style={{ padding: 28 }} accent isDark={isDark}>
+                    <SectionLabel icon={Activity} color="#a78bfa" isDark={isDark}>Psychological Profile</SectionLabel>
                     <div style={{ height: 280, position: 'relative' }}>
                       {getRadarData() && <Radar data={getRadarData()} options={radarOpts} />}
                     </div>
                   </GlassCard>
 
                   {/* Score rings */}
-                  <GlassCard className="anim-fadeup anim-delay-1" style={{ padding: '24px 28px' }}>
+                  <GlassCard className="anim-fadeup anim-delay-1" style={{ padding: '24px 28px' }} isDark={isDark}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
-                      <ScoreRing icon={Crown}  label="Leadership"  value={analysis.scores.leadership}          color="#fbbf24" />
-                      <ScoreRing icon={Ghost}  label="Antagonist"  value={analysis.scores.antagonistPotential} color="#f87171" />
-                      <ScoreRing icon={Heart}  label="Stability"   value={analysis.scores.emotionalStability}  color="#34d399" />
+                      <ScoreRing icon={Crown}  label="Leadership"  value={analysis.scores.leadership}          color="#fbbf24" isDark={isDark} />
+                      <ScoreRing icon={Ghost}  label="Antagonist"  value={analysis.scores.antagonistPotential} color="#f87171" isDark={isDark} />
+                      <ScoreRing icon={Heart}  label="Stability"   value={analysis.scores.emotionalStability}  color="#34d399" isDark={isDark} />
                     </div>
                   </GlassCard>
 
                   {/* MBTI + Alignment tags */}
                   <div className="anim-fadeup anim-delay-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <GlassCard style={{ padding: 24 }}>
-                      <SectionLabel icon={Target} color="#a78bfa">MBTI Type</SectionLabel>
+                    <GlassCard style={{ padding: 24 }} isDark={isDark}>
+                      <SectionLabel icon={Target} color="#a78bfa" isDark={isDark}>MBTI Type</SectionLabel>
                       <TraitPill type="mbti" text={analysis.mbti} />
                     </GlassCard>
-                    <GlassCard style={{ padding: 24 }}>
-                      <SectionLabel icon={Sword} color="#fbbf24">Alignment</SectionLabel>
+                    <GlassCard style={{ padding: 24 }} isDark={isDark}>
+                      <SectionLabel icon={Sword} color="#fbbf24" isDark={isDark}>Alignment</SectionLabel>
                       <TraitPill type="alignment" text={analysis.moralAlignment} />
                     </GlassCard>
                   </div>
 
                   {/* Alignment matrix */}
-                  <GlassCard className="anim-fadeup anim-delay-3" style={{ padding: 28 }}>
-                    <SectionLabel icon={Sword} color="#fbbf24">Alignment Matrix</SectionLabel>
-                    <AlignmentGrid activeAlignment={analysis.moralAlignment} />
+                  <GlassCard className="anim-fadeup anim-delay-3" style={{ padding: 28 }} isDark={isDark}>
+                    <SectionLabel icon={Sword} color="#fbbf24" isDark={isDark}>Alignment Matrix</SectionLabel>
+                    <AlignmentGrid activeAlignment={analysis.moralAlignment} isDark={isDark} />
                   </GlassCard>
 
                   {/* Strengths + Weaknesses */}
                   <div className="anim-fadeup anim-delay-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <GlassCard style={{ padding: 24 }}>
-                      <SectionLabel icon={Zap} color="#00e09a">Strengths</SectionLabel>
+                    <GlassCard style={{ padding: 24 }} isDark={isDark}>
+                      <SectionLabel icon={Zap} color="#00e09a" isDark={isDark}>Strengths</SectionLabel>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {analysis.traits.strengths.map((s, i) => <TraitPill key={i} type="strength" text={s} />)}
                       </div>
                     </GlassCard>
-                    <GlassCard style={{ padding: 24 }}>
-                      <SectionLabel icon={Heart} color="#ff5c72">Weaknesses</SectionLabel>
+                    <GlassCard style={{ padding: 24 }} isDark={isDark}>
+                      <SectionLabel icon={Heart} color="#ff5c72" isDark={isDark}>Weaknesses</SectionLabel>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {analysis.traits.weaknesses.map((w, i) => <TraitPill key={i} type="weakness" text={w} />)}
                       </div>
@@ -671,13 +788,13 @@ const CharacterPsychology = () => {
                   </div>
 
                   {/* Motivation */}
-                  <GlassCard className="anim-fadeup anim-delay-5" style={{ padding: 28 }}>
-                    <SectionLabel icon={Sparkles} color="#f472b6">Primary Motivation</SectionLabel>
+                  <GlassCard className="anim-fadeup anim-delay-5" style={{ padding: 28 }} isDark={isDark}>
+                    <SectionLabel icon={Sparkles} color="#f472b6" isDark={isDark}>Primary Motivation</SectionLabel>
                     <p style={{
                       margin: 0,
                       fontFamily: "'Playfair Display', Georgia, serif",
-                      fontSize: 18, fontStyle: 'italic',
-                      color: 'rgba(255,255,255,0.82)',
+                      fontSize: 20, fontStyle: 'italic',
+                      color: isDark ? 'rgba(255,255,255,0.82)' : 'rgba(0,0,0,0.75)',
                       lineHeight: 1.7,
                       letterSpacing: '0.01em'
                     }}>
@@ -693,7 +810,7 @@ const CharacterPsychology = () => {
                   minHeight: 460,
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center'
-                }}>
+                }} isDark={isDark}>
                   <div style={{
                     width: 100, height: 100, borderRadius: '50%',
                     background: 'radial-gradient(circle, rgba(99,44,255,0.2) 0%, transparent 70%)',
@@ -705,15 +822,15 @@ const CharacterPsychology = () => {
                   </div>
                   <h2 style={{
                     fontFamily: "'Playfair Display', Georgia, serif",
-                    fontSize: 28, fontWeight: 700,
-                    color: 'rgba(255,255,255,0.8)',
-                    margin: '0 0 12px'
+                    fontSize: 32, fontWeight: 700,
+                    color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
+                    margin: '0 0 16px'
                   }}>
                     {selectedCharacter ? 'Ready to Analyse' : 'Select a Character'}
                   </h2>
                   <p style={{
                     fontFamily: "'DM Mono', monospace",
-                    fontSize: 13, color: 'rgba(255,255,255,0.3)',
+                    fontSize: 15, color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)',
                     lineHeight: 1.8, margin: 0, maxWidth: 340,
                     letterSpacing: '0.03em'
                   }}>
@@ -727,7 +844,7 @@ const CharacterPsychology = () => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

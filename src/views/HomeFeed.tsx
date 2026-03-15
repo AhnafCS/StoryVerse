@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../hooks/useTheme";
 import {
   Search, Plus, Heart, MessageCircle, TrendingUp, Book, Film, Tv,
   Star, MoreHorizontal, Home, Compass, Bookmark, Settings, User,
-  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain
+  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain, Sun, Moon
 } from "lucide-react";
 
 const HomeFeed = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState("all");
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
@@ -95,24 +98,38 @@ const HomeFeed = () => {
         * { box-sizing: border-box; }
 
         :root {
+          ${isDark ? `
+          --white: #0a0a0a;
+          --ink: #f5f5f5;
+          --ink-secondary: #a0a0a0;
+          --ink-muted: #6a6a6a;
+          --ink-faint: #2a2a2a;
+          --surface: #141414;
+          --border: #222222;
+          --shadow-xs: 0 1px 3px rgba(0,0,0,0.3);
+          --shadow-sm: 0 2px 12px rgba(0,0,0,0.4);
+          --shadow-md: 0 8px 30px rgba(0,0,0,0.5);
+          --shadow-hover: 0 12px 40px rgba(99,44,255,0.15);
+          ` : `
           --white: #ffffff;
           --ink: #0d0d0d;
           --ink-secondary: #4a4a4a;
           --ink-muted: #9a9a9a;
           --ink-faint: #e8e8e8;
-          --purple: #6d28d9;
-          --purple-light: #ede9fe;
-          --purple-mid: #8b5cf6;
           --surface: #fafafa;
           --border: #efefef;
-          --radius-sm: 10px;
-          --radius-md: 16px;
-          --radius-lg: 22px;
-          --radius-xl: 28px;
           --shadow-xs: 0 1px 3px rgba(0,0,0,0.06);
           --shadow-sm: 0 2px 12px rgba(0,0,0,0.07);
           --shadow-md: 0 8px 30px rgba(0,0,0,0.09);
           --shadow-hover: 0 12px 40px rgba(109,40,217,0.12);
+          `}
+          --purple: #6d28d9;
+          --purple-light: #ede9fe;
+          --purple-mid: #8b5cf6;
+          --radius-sm: 10px;
+          --radius-md: 16px;
+          --radius-lg: 22px;
+          --radius-xl: 28px;
           --font-serif: 'Instrument Serif', Georgia, serif;
           --font-sans: 'DM Sans', system-ui, sans-serif;
         }
@@ -148,7 +165,7 @@ const HomeFeed = () => {
         .sv-logo-mark {
           width: 34px;
           height: 34px;
-          background: var(--ink);
+          background: var(--purple);
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -194,7 +211,7 @@ const HomeFeed = () => {
         .sv-nav-item:hover { background: var(--surface); color: var(--ink); }
 
         .sv-nav-item.active {
-          background: var(--ink);
+          background: var(--purple);
           color: white;
           font-weight: 500;
         }
@@ -269,7 +286,7 @@ const HomeFeed = () => {
         .sv-header {
           position: sticky;
           top: 0;
-          background: rgba(255,255,255,0.85);
+          background: ${isDark ? 'rgba(10,10,10,0.85)' : 'rgba(255,255,255,0.85)'};
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--border);
@@ -289,7 +306,7 @@ const HomeFeed = () => {
         }
 
         .sv-greeting-sub {
-          font-size: 11px;
+          font-size: 13px;
           font-weight: 500;
           letter-spacing: 0.07em;
           text-transform: uppercase;
@@ -298,7 +315,7 @@ const HomeFeed = () => {
 
         .sv-greeting-main {
           font-family: var(--font-serif);
-          font-size: 22px;
+          font-size: 26px;
           letter-spacing: -0.02em;
           color: var(--ink);
           line-height: 1.1;
@@ -325,7 +342,7 @@ const HomeFeed = () => {
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 100px;
-          font-size: 13px;
+          font-size: 15px;
           font-family: var(--font-sans);
           color: var(--ink);
           outline: none;
@@ -342,7 +359,7 @@ const HomeFeed = () => {
         .sv-plus-btn {
           width: 36px;
           height: 36px;
-          background: var(--ink);
+          background: var(--purple);
           color: white;
           border: none;
           border-radius: 50%;
@@ -354,7 +371,29 @@ const HomeFeed = () => {
           flex-shrink: 0;
         }
 
-        .sv-plus-btn:hover { background: var(--purple); transform: rotate(90deg); }
+        .sv-plus-btn:hover { background: var(--purple-mid); transform: rotate(90deg); }
+
+        /* ── Theme Toggle ── */
+        .sv-theme-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 100px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--ink-secondary);
+        }
+
+        .sv-theme-btn:hover {
+          border-color: var(--purple-mid);
+          background: var(--purple-light);
+          color: var(--purple);
+        }
 
         /* ── Tabs ── */
         .sv-tabs {
@@ -366,7 +405,7 @@ const HomeFeed = () => {
 
         .sv-tab {
           padding: 8px 16px;
-          font-size: 13px;
+          font-size: 15px;
           font-weight: 500;
           color: var(--ink-muted);
           background: none;
@@ -380,7 +419,7 @@ const HomeFeed = () => {
         }
 
         .sv-tab:hover { color: var(--ink); }
-        .sv-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+        .sv-tab.active { color: var(--ink); border-bottom-color: var(--purple); font-weight: 600; }
 
         /* ── Trending ── */
         .sv-trending {
@@ -399,7 +438,7 @@ const HomeFeed = () => {
           display: flex;
           align-items: center;
           gap: 7px;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 600;
           letter-spacing: 0.07em;
           text-transform: uppercase;
@@ -446,8 +485,8 @@ const HomeFeed = () => {
         }
 
         .sv-trending-chip:hover {
-          background: var(--ink);
-          border-color: var(--ink);
+          background: var(--purple);
+          border-color: var(--purple);
           color: white;
           transform: translateY(-1px);
           box-shadow: var(--shadow-sm);
@@ -456,7 +495,7 @@ const HomeFeed = () => {
         .sv-trending-chip:hover .sv-chip-type { color: rgba(255,255,255,0.6); }
 
         .sv-chip-emoji { font-size: 15px; }
-        .sv-chip-title { font-size: 13px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; }
+        .sv-chip-title { font-size: 15px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; }
         .sv-trending-chip:hover .sv-chip-title { color: white; }
         .sv-chip-type { font-size: 11px; color: var(--ink-muted); }
 
@@ -469,7 +508,7 @@ const HomeFeed = () => {
           cursor: pointer;
         }
 
-        .sv-post:hover { background: #fdfdfd; }
+        .sv-post:hover { background: ${isDark ? '#1a1a1a' : '#fdfdfd'}; }
 
         .sv-post-inner { padding: 24px 28px; }
 
@@ -483,7 +522,7 @@ const HomeFeed = () => {
         .sv-post-user { display: flex; align-items: center; gap: 11px; }
 
         .sv-user-name {
-          font-size: 14px;
+          font-size: 16px;
           font-weight: 600;
           color: var(--ink);
           letter-spacing: -0.01em;
@@ -563,7 +602,7 @@ const HomeFeed = () => {
 
         .sv-post-title {
           font-family: var(--font-serif);
-          font-size: 21px;
+          font-size: 24px;
           letter-spacing: -0.02em;
           color: var(--ink);
           line-height: 1.15;
@@ -584,9 +623,9 @@ const HomeFeed = () => {
         .sv-star-empty { color: var(--ink-faint); }
 
         .sv-review {
-          font-size: 14px;
+          font-size: 16px;
           line-height: 1.65;
-          color: #3a3a3a;
+          color: ${isDark ? '#c0c0c0' : '#3a3a3a'};
           margin-bottom: 18px;
           letter-spacing: -0.005em;
         }
@@ -605,7 +644,7 @@ const HomeFeed = () => {
           gap: 7px;
           padding: 7px 12px;
           border-radius: var(--radius-sm);
-          font-size: 13px;
+          font-size: 15px;
           font-weight: 500;
           color: var(--ink-secondary);
           background: none;
@@ -618,7 +657,7 @@ const HomeFeed = () => {
         .sv-action-btn:hover { background: var(--surface); color: var(--ink); }
 
         .sv-action-btn.liked { color: #e11d48; }
-        .sv-action-btn.liked:hover { background: #fff1f2; }
+        .sv-action-btn.liked:hover { background: ${isDark ? 'rgba(225,29,72,0.1)' : '#fff1f2'}; }
         .sv-action-btn.saved { color: var(--purple); }
         .sv-action-btn.saved:hover { background: var(--purple-light); }
 
@@ -662,7 +701,7 @@ const HomeFeed = () => {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: var(--ink);
+          background: var(--purple);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -734,7 +773,7 @@ const HomeFeed = () => {
         .sv-event-card {
           border-radius: var(--radius-lg);
           padding: 20px;
-          background: var(--ink);
+          background: var(--purple);
           color: white;
           position: relative;
           overflow: hidden;
@@ -896,6 +935,10 @@ const HomeFeed = () => {
                   <span className="sv-greeting-main">Welcome back</span>
                 </div>
                 <div className="sv-header-actions">
+                  <button className="sv-theme-btn" onClick={toggleTheme}>
+                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                    {isDark ? 'Light' : 'Dark'}
+                  </button>
                   <div className="sv-search-wrap">
                     <Search size={14} />
                     <input className="sv-search" type="text" placeholder="Search anything…" />
