@@ -911,18 +911,6 @@ const HomeFeed = () => {
             </nav>
 
             <div className="sv-divider" />
-            <p className="sv-section-label">Suggestions</p>
-
-            {sidebarSuggestions.map(s => (
-              <div key={s.id} className="sv-suggestion">
-                <div className="sv-avatar" style={{ background: s.color }}>{s.initials}</div>
-                <div className="sv-suggestion-info">
-                  <div className="sv-suggestion-name">{s.name}</div>
-                  <div className="sv-suggestion-handle">{s.handle}</div>
-                </div>
-                <button className="sv-add-btn">Follow</button>
-              </div>
-            ))}
           </aside>
 
           {/* Main Feed */}
