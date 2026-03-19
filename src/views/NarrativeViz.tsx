@@ -725,18 +725,7 @@ const NarrativeViz = () => {
 
         {/* Header */}
         <div className="nv-fadeup" style={{ marginBottom: 40, textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '6px 16px', borderRadius: 999,
-            background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,180,255,0.25)',
-            marginBottom: 16
-          }}>
-            <GitBranch size={13} color="#00b4ff" />
-            <span style={{
-              fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#00b4ff',
-              letterSpacing: '0.1em', textTransform: 'uppercase'
-            }}>Requirement 3 — AI Narrative Engine</span>
-          </div>
+          
           <h1 style={{
             fontFamily: "'Playfair Display', Georgia, serif",
             fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 700, margin: '0 0 12px',
