@@ -1,5 +1,5 @@
 import { api } from '../lib/api';
-import { User, AuthResponse } from '../models/User';
+import { User, AuthResponse } from '../types/User';
 
 export class AuthController {
   static async login(credentials: { email: string; password: string }) {

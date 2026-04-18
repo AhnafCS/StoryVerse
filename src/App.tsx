@@ -8,6 +8,8 @@ import { ThemeProvider } from "./hooks/useTheme";
 import Index from "./pages/Index";
 import HomeFeed from "./pages/HomeFeed";
 import CharacterPsychology from "./pages/CharacterPsychology";
+import TheoryForum from "./pages/TheoryForum";
+import PersonalAnalytics from "./pages/PersonalAnalytics";
 import NarrativeViz from "./pages/NarrativeViz";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/feed" element={<HomeFeed />} />
             <Route path="/psychology" element={<CharacterPsychology />} />
+            <Route path="/forum" element={<TheoryForum />} />
+            <Route path="/analytics" element={<PersonalAnalytics />} />
             <Route path="/narrative" element={<NarrativeViz />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

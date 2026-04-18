@@ -6,6 +6,11 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
 import analysisRoutes from './routes/analysis.js';
+import mediaRoutes from './routes/mediaRoutes.js';
+import characterRoutes from './routes/characterRoutes.js';
+import favoritesRoutes from './routes/favoritesRoutes.js';
+import forumRoutes from './routes/forum.js';
+import analyticsRoutes from './routes/analytics.js';
 
 dotenv.config();
 
@@ -35,6 +40,11 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', analysisRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/characters', characterRoutes);
+app.use('/api/favorites', favoritesRoutes);
+app.use('/api/forum', forumRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

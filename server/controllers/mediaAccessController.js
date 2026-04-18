@@ -1,5 +1,6 @@
 import Media from '../models/Media.js';
 
+// Requirement 1: Add Media
 const createMedia = function(req, res) {
   const title = req.body.title;
   const type = req.body.type;
@@ -28,18 +29,22 @@ const createMedia = function(req, res) {
     });
 };
 
+// Requirement 4: Search & Filter Media
 const getAllMedia = function(req, res) {
   const query = {};
 
   if (req.query.title) {
     query.title = { $regex: req.query.title, $options: 'i' };
   }
+
   if (req.query.genre) {
     query.genres = { $in: [req.query.genre] };
   }
+
   if (req.query.creator) {
     query.creator = { $regex: req.query.creator, $options: 'i' };
   }
+
   if (req.query.tag) {
     query.tags = { $in: [req.query.tag] };
   }
@@ -53,6 +58,7 @@ const getAllMedia = function(req, res) {
     });
 };
 
+// Get single media by ID
 const getMediaById = function(req, res) {
   Media.findById(req.params.id)
     .then(function(media) {
