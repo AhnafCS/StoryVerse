@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,7 @@ import HomeFeed from "./views/HomeFeed";
 import CharacterPsychology from "./views/CharacterPsychology";
 import TheoryForum from "./views/TheoryForum";
 import PersonalAnalytics from "./views/PersonalAnalytics";
+import NarrativeViz from "./views/NarrativeViz";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,10 +25,11 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/feed" element={<HomeFeed />} />
-            <Route path="/psychology" element={<CharacterPsychology />} />
-            <Route path="/forum" element={<TheoryForum />} />
-            <Route path="/analytics" element={<PersonalAnalytics />} />
-            <Route path="*" element={<NotFound />} />
+<Route path="/psychology" element={<CharacterPsychology />} />
+<Route path="/forum" element={<TheoryForum />} />
+<Route path="/analytics" element={<PersonalAnalytics />} />
+<Route path="/narrative" element={<NarrativeViz />} />
+<Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

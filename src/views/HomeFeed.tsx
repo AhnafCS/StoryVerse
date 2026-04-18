@@ -4,7 +4,7 @@ import { useTheme } from "../hooks/useTheme";
 import {
   Search, Plus, Heart, MessageCircle, TrendingUp, Book, Film, Tv,
   Star, MoreHorizontal, Home, Compass, Bookmark, Settings, User,
-  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain, Sun, Moon
+  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain, Sun, Moon,GitBranch
 } from "lucide-react";
 
 const HomeFeed = () => {
@@ -908,49 +908,48 @@ const HomeFeed = () => {
                   }}>AI</span>
                 </span>
               </button>
+  <button 
+    className="sv-nav-item" 
+    onClick={() => navigate('/narrative')}
+    style={{ marginTop: 4 }}
+  >
+    <GitBranch size={16} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      Narrative
+      <span style={{ 
+        fontSize: 9, 
+        fontWeight: 600, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        padding: '2px 6px',
+        background: '#0090cc',
+        color: 'white',
+        borderRadius: 4
+      }}>AI</span>
+    </span>
+  </button>
 
-              <button 
-                className="sv-nav-item" 
-                onClick={() => navigate('/forum')}
-                style={{ marginTop: 8 }}
-              >
-                <MessageCircle size={16} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Theory Forum
-                  <span style={{ 
-                    fontSize: 9, 
-                    fontWeight: 600, 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    padding: '2px 6px',
-                    background: 'var(--purple)',
-                    color: 'white',
-                    borderRadius: 4
-                  }}>AI</span>
-                </span>
-              </button>
-
-              <button 
-                className="sv-nav-item" 
-                onClick={() => navigate('/analytics')}
-                style={{ marginTop: 8 }}
-              >
-                <TrendingUp size={16} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Analytics
-                  <span style={{ 
-                    fontSize: 9, 
-                    fontWeight: 600, 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    padding: '2px 6px',
-                    background: 'var(--purple)',
-                    color: 'white',
-                    borderRadius: 4
-                  }}>AI</span>
-                </span>
-              </button>
-            </nav>
+  <button 
+    className="sv-nav-item" 
+    onClick={() => navigate('/analytics')}
+    style={{ marginTop: 8 }}
+  >
+    <TrendingUp size={16} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      Analytics
+      <span style={{ 
+        fontSize: 9, 
+        fontWeight: 600, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        padding: '2px 6px',
+        background: '#0090cc',
+        color: 'white',
+        borderRadius: 4
+      }}>AI</span>
+    </span>
+  </button>
+</nav>
 
             <div className="sv-divider" />
           </aside>
