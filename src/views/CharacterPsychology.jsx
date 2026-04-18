@@ -12,7 +12,7 @@ import {
   Legend
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
-import { Brain, Sparkles, User, Plus, Activity, Zap, Heart, Sword, Crown, Ghost, Target, X, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Brain, Sparkles, User, Plus, Activity, Zap, Heart, Sword, Crown, Ghost, Target, X, ChevronRight, Sun, Moon, Wand2, Printer } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -364,6 +364,10 @@ const CharacterPsychology = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCharacter, setNewCharacter] = useState({ name: '', description: '' });
+  
+  const [whatIfScenario, setWhatIfScenario] = useState('');
+  const [whatIfResult, setWhatIfResult] = useState('');
+  const [isGeneratingWhatIf, setIsGeneratingWhatIf] = useState(false);
 
   useEffect(() => { loadCharacters(); }, []);
 
@@ -394,8 +398,31 @@ const CharacterPsychology = () => {
       const res = await api.authenticatedRequest(`/analyze/${selectedCharacter._id}`, { method: 'POST' });
       setAnalysis(res.analysis);
       toast.success('Analysis complete!');
+      setWhatIfResult('');
+      setWhatIfScenario('');
     } catch (err) { toast.error(err.message || 'Analysis failed'); }
     finally { setIsAnalyzing(false); }
+  };
+
+  const generateWhatIf = async () => {
+    if (!whatIfScenario.trim()) return;
+    setIsGeneratingWhatIf(true);
+    try {
+      const res = await api.authenticatedRequest('/forum/whatif', {
+        method: 'POST',
+        body: JSON.stringify({ characterId: selectedCharacter._id, scenario: whatIfScenario })
+      });
+      setWhatIfResult(res.scenarioResult);
+      toast.success('Scenario generated!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate scenario');
+    } finally {
+      setIsGeneratingWhatIf(false);
+    }
+  };
+
+  const exportReport = () => {
+    window.print();
   };
 
   const getRadarData = () => {
@@ -801,6 +828,63 @@ const CharacterPsychology = () => {
                       "{analysis.motivation}"
                     </p>
                   </GlassCard>
+
+                  {/* What If Scenario Generator */}
+                  <GlassCard className="anim-fadeup anim-delay-6" style={{ padding: 28 }} isDark={isDark}>
+                    <SectionLabel icon={Wand2} color="#b44fff" isDark={isDark}>"What If" Scenario Generator</SectionLabel>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                      <input
+                        type="text"
+                        placeholder="What if they made a different choice...?"
+                        value={whatIfScenario}
+                        onChange={(e) => setWhatIfScenario(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') generateWhatIf();
+                        }}
+                        style={{
+                          flex: 1,
+                          background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
+                          borderRadius: 12,
+                          padding: '13px 16px',
+                          color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 15,
+                          outline: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
+                      />
+                      <Btn onClick={generateWhatIf} disabled={isGeneratingWhatIf || !whatIfScenario.trim()} icon={Wand2} variant="primary">
+                        {isGeneratingWhatIf ? 'Dreaming...' : 'Generate'}
+                      </Btn>
+                    </div>
+                    {whatIfResult && (
+                      <div style={{
+                        padding: 20,
+                        borderRadius: 16,
+                        background: isDark ? 'rgba(180,79,255,0.05)' : 'rgba(180,79,255,0.08)',
+                        border: isDark ? '1px solid rgba(180,79,255,0.2)' : '1px solid rgba(180,79,255,0.3)'
+                      }}>
+                        <p style={{
+                          margin: 0,
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 14,
+                          color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>
+                          {whatIfResult}
+                        </p>
+                      </div>
+                    )}
+                  </GlassCard>
+
+                  {/* Export Report Action */}
+                  <div className="anim-fadeup anim-delay-6" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                    <Btn onClick={exportReport} icon={Printer} variant="secondary" isDark={isDark}>
+                      Export Report to PDF (Academic Mode)
+                    </Btn>
+                  </div>
 
                 </div>
               ) : (

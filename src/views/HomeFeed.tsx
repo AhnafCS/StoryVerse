@@ -908,27 +908,69 @@ const HomeFeed = () => {
                   }}>AI</span>
                 </span>
               </button>
-              <button 
-                className="sv-nav-item" 
-                onClick={() => navigate('/narrative')}
-                style={{ marginTop: 4 }}
-              >
-                <GitBranch size={16} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Narrative
-                  <span style={{ 
-                    fontSize: 9, 
-                    fontWeight: 600, 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    padding: '2px 6px',
-                    background: '#0090cc',
-                    color: 'white',
-                    borderRadius: 4
-                  }}>AI</span>
-                </span>
-              </button>
-            </nav>
+  <button 
+    className="sv-nav-item" 
+    onClick={() => navigate('/narrative')}
+    style={{ marginTop: 4 }}
+  >
+    <GitBranch size={16} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      Narrative
+      <span style={{ 
+        fontSize: 9, 
+        fontWeight: 600, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        padding: '2px 6px',
+        background: '#0090cc',
+        color: 'white',
+        borderRadius: 4
+      }}>AI</span>
+    </span>
+  </button>
+
+  <button 
+    className="sv-nav-item" 
+    onClick={() => navigate('/analytics')}
+    style={{ marginTop: 8 }}
+  >
+    <TrendingUp size={16} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      Analytics
+      <span style={{ 
+        fontSize: 9, 
+        fontWeight: 600, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        padding: '2px 6px',
+        background: '#0090cc',
+        color: 'white',
+        borderRadius: 4
+      }}>AI</span>
+    </span>
+  </button>
+
+  <button 
+    className="sv-nav-item" 
+    onClick={() => navigate('/forum')}
+    style={{ marginTop: 8 }}
+  >
+    <MessageCircle size={16} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      Forum
+      <span style={{ 
+        fontSize: 9, 
+        fontWeight: 600, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        padding: '2px 6px',
+        background: '#00cc7d',
+        color: 'white',
+        borderRadius: 4
+      }}>AI</span>
+    </span>
+  </button>
+</nav>
 
             <div className="sv-divider" />
           </aside>
