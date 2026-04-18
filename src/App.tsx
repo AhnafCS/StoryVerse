@@ -7,6 +7,8 @@ import { ThemeProvider } from "./hooks/useTheme";
 import Index from "./pages/Index";
 import HomeFeed from "./views/HomeFeed";
 import CharacterPsychology from "./views/CharacterPsychology";
+import TheoryForum from "./views/TheoryForum";
+import PersonalAnalytics from "./views/PersonalAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/feed" element={<HomeFeed />} />
             <Route path="/psychology" element={<CharacterPsychology />} />
+            <Route path="/forum" element={<TheoryForum />} />
+            <Route path="/analytics" element={<PersonalAnalytics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
