@@ -371,6 +371,26 @@ const CharacterPsychology = () => {
 
   useEffect(() => { loadCharacters(); }, []);
 
+  // Check for pending psychology data from UserProfile posts
+  useEffect(() => {
+    const pendingData = localStorage.getItem('psychology_pending');
+    if (pendingData) {
+      try {
+        const { name, description, timestamp } = JSON.parse(pendingData);
+        // Only use data if it's less than 5 minutes old
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setNewCharacter({ name, description });
+          setShowCreateForm(true);
+          toast.info('Character data loaded from your post!');
+        }
+        // Clear the pending data
+        localStorage.removeItem('psychology_pending');
+      } catch (e) {
+        console.error('Failed to parse psychology pending data:', e);
+      }
+    }
+  }, []);
+
   const loadCharacters = async () => {
     try {
       const res = await api.authenticatedRequest('/characters');

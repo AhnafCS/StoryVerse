@@ -6,8 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./hooks/useTheme";
 import Index from "./pages/Index";
-import HomeFeed from "./pages/HomeFeed";
-import UserProfile from "./pages/UserProfile";
+import HomeFeed from './pages/HomeFeed';
+import UserProfile from './pages/UserProfile';
+import ViewProfile from './pages/ViewProfile';
 import CharacterPsychology from "./pages/CharacterPsychology";
 import TheoryForum from "./pages/TheoryForum";
 import PersonalAnalytics from "./pages/PersonalAnalytics";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/feed" element={<HomeFeed />} />
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/profile/:username" element={<ViewProfile />} />
             <Route path="/psychology" element={<CharacterPsychology />} />
             <Route path="/forum" element={<TheoryForum />} />
             <Route path="/analytics" element={<PersonalAnalytics />} />

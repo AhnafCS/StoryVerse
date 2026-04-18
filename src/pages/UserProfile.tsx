@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
+import api from "../services/api";
 import {
   User, Edit2, Save, X, Plus, Image, MessageCircle, Heart, Bookmark,
-  Settings, ArrowLeft, Sun, Moon, Search, ChevronRight
+  Settings, ArrowLeft, Sun, Moon, Search, ChevronRight, Brain, GitBranch
 } from "lucide-react";
 
 interface UserPost {
@@ -18,6 +19,7 @@ interface UserPost {
 }
 
 interface UserProfile {
+  name: string;
   username: string;
   bio: string;
   avatar: string;
@@ -29,15 +31,15 @@ const UserProfile = () => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    username: "YourUsername",
-    bio: "Welcome to your profile! Add a bio to tell others about yourself.",
-    avatar: "ME",
-    posts: []
-  });
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
+  const [tempName, setTempName] = useState("");
   const [tempUsername, setTempUsername] = useState("");
   const [tempBio, setTempBio] = useState("");
 
@@ -46,58 +48,122 @@ const UserProfile = () => {
   const [postContent, setPostContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Load user profile from localStorage on mount
+  // Load user profile from API on mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem('userProfile');
-    if (savedProfile) {
-      setUserProfile(JSON.parse(savedProfile));
-    }
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const profileResponse = await api.profile.getCurrentProfile();
+        setUserProfile(profileResponse.user);
+        
+        // Fetch user's posts
+        const postsResponse = await api.posts.getUserPosts(profileResponse.user.username);
+        setUserPosts(postsResponse.posts || []);
+        
+      } catch (err) {
+        console.error('Failed to fetch user profile:', err);
+        setError('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
   }, []);
 
-  // Save user profile to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('userProfile', JSON.stringify(userProfile));
-  }, [userProfile]);
-
-  const handleSaveUsername = () => {
-    if (tempUsername.trim()) {
-      setUserProfile(prev => ({ ...prev, username: tempUsername.trim() }));
-      setIsEditingUsername(false);
+  const handleSaveName = async () => {
+    if (tempName.trim() && userProfile) {
+      try {
+        const response = await api.profile.updateProfile({ name: tempName.trim() });
+        setUserProfile(response.user);
+        setIsEditingName(false);
+      } catch (error) {
+        console.error('Failed to update name:', error);
+      }
     }
   };
 
-  const handleSaveBio = () => {
-    setUserProfile(prev => ({ ...prev, bio: tempBio }));
-    setIsEditingBio(false);
+  const handleSaveUsername = async () => {
+    if (tempUsername.trim() && userProfile) {
+      try {
+        const response = await api.profile.updateProfile({ username: tempUsername.trim() });
+        setUserProfile(response.user);
+        setIsEditingUsername(false);
+      } catch (error) {
+        console.error('Failed to update username:', error);
+      }
+    }
   };
 
-  const handleCreatePost = () => {
-    if (postContent.trim() || selectedImage) {
-      const newPost: UserPost = {
-        id: Date.now().toString(),
-        type: postType,
-        content: postContent.trim(),
-        timestamp: "   Just now",
-        likes: 0,
-        comments: 0,
-        liked: false,
-        saved: false
-      };
-
-      if (postType === 'image' && selectedImage) {
-        newPost.content = selectedImage;
+  const handleSaveBio = async () => {
+    if (userProfile) {
+      try {
+        const response = await api.profile.updateProfile({ bio: tempBio });
+        setUserProfile(response.user);
+        setIsEditingBio(false);
+      } catch (error) {
+        console.error('Failed to update bio:', error);
       }
+    }
+  };
 
-      setUserProfile(prev => ({
-        ...prev,
-        posts: [newPost, ...prev.posts]
-      }));
+  const handleCreatePost = async () => {
+    if (postContent.trim() || selectedImage) {
+      try {
+        const trimmedContent = postContent.trim();
+        
+        // Check for @AI keyword
+        const hasAI = trimmedContent.toLowerCase().includes('@ai');
+        let featureTag = null;
+        let featureData = null;
+        
+        if (postType === 'text' && hasAI) {
+          featureTag = 'ai'; // Special tag for @AI posts
+          const lines = trimmedContent.split('\n');
+          const nameLine = lines[0].replace(/@ai/gi, '').trim();
+          const descriptionLines = lines.slice(1).join('\n').trim();
+          const fullContent = descriptionLines || 'No description provided';
+          
+          featureData = {
+            name: nameLine || 'Untitled Entry',
+            summary: fullContent.substring(0, 100) + (fullContent.length > 100 ? '...' : ''),
+            fullContent: fullContent
+          };
+          
+          // Store for both Psychology and Narrative pages
+          localStorage.setItem('psychology_pending', JSON.stringify({
+            name: featureData.name,
+            description: fullContent,
+            timestamp: Date.now()
+          }));
+          localStorage.setItem('narrative_pending', JSON.stringify({
+            title: featureData.name,
+            content: fullContent,
+            timestamp: Date.now()
+          }));
+        }
+        
+        const postData = {
+          type: postType,
+          content: postType === 'text' ? trimmedContent : '',
+          imageUrl: postType === 'image' ? selectedImage : '',
+          featureTag,
+          featureData
+        };
 
-      // Reset form
-      setPostContent("");
-      setSelectedImage(null);
-      setShowPostModal(false);
-      setPostType('text');
+        const response = await api.posts.createPost(postData);
+        
+        // Add new post to the posts list
+        setUserPosts(prev => [response.post, ...prev]);
+        
+        // Reset form
+        setPostContent("");
+        setSelectedImage(null);
+        setShowPostModal(false);
+        setPostType('text');
+      } catch (error) {
+        console.error('Failed to create post:', error);
+      }
     }
   };
 
@@ -113,33 +179,62 @@ const UserProfile = () => {
   };
 
   const handleLikePost = (postId: string) => {
-    setUserProfile(prev => ({
-      ...prev,
-      posts: prev.posts.map(post => 
-        post.id === postId 
-          ? { 
-              ...post, 
-              liked: !post.liked, 
-              likes: post.liked ? post.likes - 1 : post.likes + 1 
-            }
-          : post
-      )
-    }));
+    setUserPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            liked: !post.liked, 
+            likes: post.liked ? post.likes - 1 : post.likes + 1 
+          }
+        : post
+    ));
   };
 
   const handleSavePost = (postId: string) => {
-    setUserProfile(prev => ({
-      ...prev,
-      posts: prev.posts.map(post => 
-        post.id === postId 
-          ? { 
-              ...post, 
-              saved: !post.saved
-            }
-          : post
-      )
-    }));
+    setUserPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            saved: !post.saved
+          }
+        : post
+    ));
   };
+
+  if (loading) {
+    return (
+      <div className="up-root">
+        <div className="up-loading">
+          <div className="up-spinner"></div>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !userProfile) {
+    return (
+      <div className="up-root">
+        <header className="up-header">
+          <div className="up-header-inner">
+            <div className="up-header-left">
+              <button className="up-back-btn" onClick={() => navigate('/feed')}>
+                <ArrowLeft size={16} />
+                Back
+              </button>
+              <h1 className="up-header-title">Profile Error</h1>
+            </div>
+          </div>
+        </header>
+        <main className="up-main">
+          <div className="up-error">
+            <p>{error || 'Failed to load profile'}</p>
+            <button onClick={() => navigate('/feed')}>Return to Home</button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -338,11 +433,33 @@ const UserProfile = () => {
           flex: 1;
         }
 
-        .up-username-row {
+        .up-name-row {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 12px;
+          margin-bottom: 4px;
+        }
+
+        .up-display-name {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--ink);
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .up-username-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .up-handle {
+          font-size: 16px;
+          font-weight: 400;
+          color: var(--ink-muted);
+          letter-spacing: -0.01em;
         }
 
         .up-username {
@@ -350,6 +467,42 @@ const UserProfile = () => {
           font-weight: 600;
           color: var(--ink);
           letter-spacing: -0.02em;
+        }
+
+        .up-name-input {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--ink);
+          letter-spacing: -0.02em;
+          background: var(--surface);
+          border: 1px solid var(--purple);
+          border-radius: var(--radius-sm);
+          padding: 4px 8px;
+          outline: none;
+          font-family: var(--font-sans);
+          width: 100%;
+          max-width: 300px;
+        }
+
+        .up-edit-btn-small {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: var(--radius-sm);
+          background: none;
+          border: none;
+          color: var(--ink-muted);
+          cursor: pointer;
+          transition: all 0.15s;
+          opacity: 0.6;
+        }
+
+        .up-edit-btn-small:hover {
+          background: var(--surface);
+          color: var(--ink);
+          opacity: 1;
         }
 
         .up-edit-btn {
@@ -557,6 +710,69 @@ const UserProfile = () => {
           max-width: 400px;
           border-radius: var(--radius-md);
           margin-top: 12px;
+        }
+
+        .up-feature-badge-row {
+          margin-bottom: 12px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .up-feature-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .up-feature-badge.psychology {
+          background: rgba(124, 58, 237, 0.15);
+          color: #7c3aed;
+        }
+
+        .up-feature-badge.psychology:hover {
+          background: #7c3aed;
+          color: white;
+          transform: translateY(-1px);
+        }
+
+        .up-feature-badge.narrative {
+          background: rgba(0, 144, 204, 0.15);
+          color: #0090cc;
+        }
+
+        .up-feature-badge.narrative:hover {
+          background: #0090cc;
+          color: white;
+          transform: translateY(-1px);
+        }
+
+        .up-feature-data {
+          background: ${theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'};
+          border-radius: var(--radius-md);
+          padding: 16px;
+          margin-bottom: 12px;
+        }
+
+        .up-feature-name {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: 8px;
+        }
+
+        .up-feature-summary {
+          font-size: 14px;
+          color: var(--ink-secondary);
+          line-height: 1.5;
         }
 
         .up-post-actions {
@@ -787,6 +1003,46 @@ const UserProfile = () => {
             <div className="up-profile-header">
               <div className="up-avatar">{userProfile.avatar}</div>
               <div className="up-profile-info">
+                {/* Name Row - Display Name (non-unique) */}
+                <div className="up-name-row">
+                  {isEditingName ? (
+                    <input
+                      className="up-name-input"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSaveName()}
+                      autoFocus
+                      placeholder="Display Name"
+                    />
+                  ) : (
+                    <h1 className="up-display-name">{userProfile.name || userProfile.username}</h1>
+                  )}
+                  {isEditingName ? (
+                    <div className="up-action-buttons">
+                      <button className="up-save-btn" onClick={handleSaveName}>
+                        <Save size={14} />
+                      </button>
+                      <button className="up-cancel-btn" onClick={() => {
+                        setIsEditingName(false);
+                        setTempName("");
+                      }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      className="up-edit-btn-small" 
+                      onClick={() => {
+                        setIsEditingName(true);
+                        setTempName(userProfile.name || userProfile.username);
+                      }}
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Username Row - Handle (unique) */}
                 <div className="up-username-row">
                   {isEditingUsername ? (
                     <input
@@ -795,34 +1051,32 @@ const UserProfile = () => {
                       onChange={(e) => setTempUsername(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSaveUsername()}
                       autoFocus
+                      placeholder="@username"
                     />
                   ) : (
-                    <h2 className="up-username">{userProfile.username}</h2>
+                    <span className="up-handle">@{userProfile.username}</span>
                   )}
                   {isEditingUsername ? (
                     <div className="up-action-buttons">
                       <button className="up-save-btn" onClick={handleSaveUsername}>
-                        <Save size={14} />
-                        Save
+                        <Save size={12} />
                       </button>
                       <button className="up-cancel-btn" onClick={() => {
                         setIsEditingUsername(false);
                         setTempUsername("");
                       }}>
-                        <X size={14} />
-                        Cancel
+                        <X size={12} />
                       </button>
                     </div>
                   ) : (
                     <button 
-                      className="up-edit-btn" 
+                      className="up-edit-btn-small" 
                       onClick={() => {
                         setIsEditingUsername(true);
                         setTempUsername(userProfile.username);
                       }}
                     >
-                      <Edit2 size={14} />
-                      Edit
+                      <Edit2 size={10} />
                     </button>
                   )}
                 </div>
@@ -877,7 +1131,7 @@ const UserProfile = () => {
           <section className="up-posts-section">
             <h2 className="up-section-title">Your Posts</h2>
             
-            {userProfile.posts.length === 0 ? (
+            {userPosts.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
                 padding: '48px 24px',
@@ -887,23 +1141,70 @@ const UserProfile = () => {
                 No posts yet. Create your first post to get started!
               </div>
             ) : (
-              userProfile.posts.map((post) => (
+              userPosts.map((post) => (
                 <div key={post.id} className="up-post">
                   <div className="up-post-header">
                     <div className="up-post-user">
                       <div className="up-post-avatar">{userProfile.avatar}</div>
                       <div className="up-post-user-info">
-                        <div className="up-post-username">{userProfile.username}</div>
-                        <div className="up-post-time">{post.timestamp}</div>
+                        <div className="up-post-username">{userProfile.name}</div>
+                        <div className="up-post-time">@{userProfile.username}</div>
                       </div>
                     </div>
                   </div>
                   
                   <div className="up-post-content">
-                    {post.type === 'text' ? (
-                      <p className="up-post-text">{post.content}</p>
-                    ) : (
-                      <img src={post.content} alt="Post image" className="up-post-image" />
+                    {/* Feature Tag Badges - Show both Psychology and Narrative for @AI posts */}
+                    {post.featureTag === 'ai' && (
+                      <div className="up-feature-badge-row">
+                        <button
+                          className="up-feature-badge psychology"
+                          onClick={() => {
+                            localStorage.setItem('psychology_pending', JSON.stringify({
+                              name: post.featureData?.name,
+                              description: post.featureData?.fullContent,
+                              timestamp: Date.now()
+                            }));
+                            navigate('/psychology');
+                          }}
+                        >
+                          <Brain size={14} />
+                          <span>PSYCHOLOGY</span>
+                        </button>
+                        <button
+                          className="up-feature-badge narrative"
+                          onClick={() => {
+                            localStorage.setItem('narrative_pending', JSON.stringify({
+                              title: post.featureData?.name,
+                              content: post.featureData?.fullContent,
+                              timestamp: Date.now()
+                            }));
+                            navigate('/narrative');
+                          }}
+                        >
+                          <GitBranch size={14} />
+                          <span>NARRATIVE</span>
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Feature Data Summary */}
+                    {post.featureData && (
+                      <div className="up-feature-data">
+                        <div className="up-feature-name">{post.featureData.name || 'Untitled'}</div>
+                        <div className="up-feature-summary">
+                          {post.featureData.fullContent || post.featureData.summary || ''}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Regular Post Content (if no feature tag) */}
+                    {!post.featureTag && (
+                      post.type === 'text' ? (
+                        <p className="up-post-text">{post.content}</p>
+                      ) : (
+                        <img src={post.imageUrl} alt="Post image" className="up-post-image" />
+                      )
                     )}
                   </div>
                   
@@ -912,19 +1213,20 @@ const UserProfile = () => {
                       className={`up-action-btn ${post.liked ? 'liked' : ''}`}
                       onClick={() => handleLikePost(post.id)}
                     >
-                      <Heart size={14} fill={post.liked ? "#e11d48" : "none"} />
-                      {post.likes}
+                      <Heart
+                        size={14}
+                        fill={post.liked ? "#e11d48" : "none"}
+                        stroke={post.liked ? "#e11d48" : "currentColor"}
+                      />
+                      {post.likes || 0}
                     </button>
                     <button className="up-action-btn">
                       <MessageCircle size={14} />
-                      {post.comments}
+                      {post.comments || 0}
                     </button>
                     <div className="up-action-spacer" />
-                    <button 
-                      className={`up-action-btn ${post.saved ? 'saved' : ''}`}
-                      onClick={() => handleSavePost(post.id)}
-                    >
-                      <Bookmark size={14} fill={post.saved ? "var(--purple)" : "none"} />
+                    <button className="up-action-btn">
+                      <Bookmark size={14} />
                     </button>
                   </div>
                 </div>
@@ -960,12 +1262,38 @@ const UserProfile = () => {
               </div>
               
               {postType === 'text' ? (
-                <textarea
-                  className="up-textarea"
-                  placeholder="What's on your mind?"
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                />
+                <div>
+                  <textarea
+                    className="up-textarea"
+                    placeholder="What's on your mind?&#10;&#10;Tip: Use @AI to create an entry for Psychology and Narrative (line 1 = name, rest = description)"
+                    value={postContent}
+                    onChange={(e) => setPostContent(e.target.value)}
+                    style={postContent.toLowerCase().includes('@ai') ? { borderColor: '#7c3aed' } : {}}
+                  />
+                  {postContent.toLowerCase().includes('@ai') && (
+                    <div style={{ 
+                      marginTop: '8px', 
+                      padding: '6px 12px', 
+                      background: 'rgba(124, 58, 237, 0.1)', 
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: '#7c3aed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span style={{ 
+                        background: '#7c3aed', 
+                        color: 'white', 
+                        padding: '2px 8px', 
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        fontSize: '11px'
+                      }}>@AI</span>
+                      <span>This post will create entries in Psychology & Narrative</span>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div>
                   <div className="up-image-upload" onClick={() => document.getElementById('image-upload')?.click()}>

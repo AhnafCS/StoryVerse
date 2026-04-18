@@ -615,6 +615,9 @@ const NarrativeViz = () => {
   const [narrative, setNarrative] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newCharName, setNewCharName] = useState('');
+  const [newCharDesc, setNewCharDesc] = useState('');
 
   // Load characters on mount
   useEffect(() => {
@@ -628,6 +631,52 @@ const NarrativeViz = () => {
     };
     loadCharacters();
   }, []);
+
+  // Check for pending narrative data from HomeFeed
+  useEffect(() => {
+    const pendingData = localStorage.getItem('narrative_pending');
+    if (pendingData) {
+      try {
+        const { title, content, timestamp } = JSON.parse(pendingData);
+        // Check if data is recent (within 5 minutes)
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setNewCharName(title || '');
+          setNewCharDesc(content || '');
+          setShowCreateForm(true);
+          toast.success('Found entry from HomeFeed! Fill in details and create character.');
+        }
+        // Clear pending data after loading
+        localStorage.removeItem('narrative_pending');
+      } catch {
+        localStorage.removeItem('narrative_pending');
+      }
+    }
+  }, []);
+
+  // Create character from form
+  const createCharacter = async () => {
+    if (!newCharName.trim()) {
+      toast.error('Please enter a character name');
+      return;
+    }
+    try {
+      const data = await api.authenticatedRequest('/characters', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newCharName,
+          description: newCharDesc || 'No description provided'
+        })
+      });
+      setCharacters(prev => [...prev, data.character]);
+      setSelectedCharacter(data.character);
+      setShowCreateForm(false);
+      setNewCharName('');
+      setNewCharDesc('');
+      toast.success(`Created ${data.character.name}! Click "Analyse" to generate narrative.`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to create character');
+    }
+  };
 
   // When character selected, try to fetch existing narrative
   useEffect(() => {
@@ -751,14 +800,14 @@ const NarrativeViz = () => {
           <GlassCard className="nv-fadeup nv-delay1" style={{ padding: 24 }} isDark={isDark}>
             <SectionLabel icon={Users} color="#00b4ff" isDark={isDark}>Select Character</SectionLabel>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 480, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto', marginBottom: 16 }}>
               {characters.length === 0 ? (
                 <div style={{
                   textAlign: 'center', padding: '32px 0',
                   fontFamily: "'DM Mono', monospace", fontSize: 13,
                   color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)', letterSpacing: '0.06em'
                 }}>
-                  No characters found.<br />Create characters in Psychology.
+                  No characters found.<br />Create one below.
                 </div>
               ) : (
                 characters.map(char => (
@@ -772,6 +821,64 @@ const NarrativeViz = () => {
                 ))
               )}
             </div>
+
+            {/* Create Character Button */}
+            {!showCreateForm ? (
+              <Btn onClick={() => setShowCreateForm(true)} icon={Users} variant="secondary" fullWidth>
+                + Add New Character
+              </Btn>
+            ) : (
+              <div style={{
+                padding: 16,
+                background: isDark ? 'rgba(0,180,255,0.08)' : 'rgba(0,180,255,0.05)',
+                borderRadius: 12,
+                border: `1px solid ${isDark ? 'rgba(0,180,255,0.2)' : 'rgba(0,180,255,0.15)'}`
+              }}>
+                <input
+                  type="text"
+                  placeholder="Character name"
+                  value={newCharName}
+                  onChange={(e) => setNewCharName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    marginBottom: 8,
+                    borderRadius: 8,
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+                    color: isDark ? '#fff' : '#000',
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 13
+                  }}
+                />
+                <textarea
+                  placeholder="Description (optional)"
+                  value={newCharDesc}
+                  onChange={(e) => setNewCharDesc(e.target.value)}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    marginBottom: 12,
+                    borderRadius: 8,
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)',
+                    color: isDark ? '#fff' : '#000',
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 13,
+                    resize: 'vertical'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn onClick={createCharacter} variant="glow" fullWidth>
+                    Create
+                  </Btn>
+                  <Btn onClick={() => setShowCreateForm(false)} variant="danger">
+                    Cancel
+                  </Btn>
+                </div>
+              </div>
+            )}
 
             {selectedCharacter && (
               <>

@@ -5,50 +5,68 @@ import api from "../services/api";
 import {
   Search, Plus, Brain, TrendingUp, MessageCircle,
   Home, Bookmark, Settings, User,
-  Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, UserPlus, Heart, MoreHorizontal, LogOut,
-  ChevronDown, ChevronUp
+  Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, Heart, MoreHorizontal, UserPlus
 } from "lucide-react";
+
+interface UserPost {
+  id: string;
+  type: 'text' | 'image';
+  content: string;
+  timestamp: string;
+  likes: number;
+  comments: number;
+  liked?: boolean;
+  saved?: boolean;
+}
+
+interface UserProfile {
+  username: string;
+  bio: string;
+  avatar: string;
+  posts: UserPost[];
+}
 
 const HomeFeed = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-  
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [following, setFollowing] = useState<Set<string>>(new Set());
-  const [allPosts, setAllPosts] = useState<any[]>([]);
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [userPosts, setUserPosts] = useState<any[]>([]);
 
-  // Fetch current user profile
+  // Load user profile from API
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    const fetchCurrentUserProfile = async () => {
       try {
         const response = await api.profile.getCurrentProfile();
-        setCurrentUser(response.user);
+        setUserProfile(response.user);
       } catch (error) {
-        console.error('Failed to fetch current user:', error);
+        console.error('Failed to fetch current user profile:', error);
+        // Don't set error here, just continue without user profile
       }
     };
 
-    fetchCurrentUser();
+    fetchCurrentUserProfile();
   }, []);
 
-  // Fetch all posts for global feed
+  // Fetch user posts when userProfile is available
   useEffect(() => {
-    const fetchAllPosts = async () => {
+    const fetchUserPosts = async () => {
+      if (!userProfile) return;
+      
       try {
-        const response = await api.posts.getPosts({ limit: 20 });
-        setAllPosts(response.posts || []);
+        const response = await api.posts.getUserPosts(userProfile.username);
+        setUserPosts(response.posts || []);
       } catch (error) {
-        console.error('Failed to fetch posts:', error);
-        setAllPosts([]);
+        console.error('Failed to fetch user posts:', error);
       }
     };
 
-    fetchAllPosts();
-  }, []);
+    fetchUserPosts();
+  }, [userProfile]);
 
   // Fetch suggested users
   useEffect(() => {
@@ -66,6 +84,22 @@ const HomeFeed = () => {
     fetchSuggestedUsers();
   }, []);
 
+  const toggleLike = (postId: string) => {
+    setLikedPosts(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
+
+  const toggleSave = (postId: string) => {
+    setSavedPosts(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
+
   const handleFollow = async (username: string) => {
     try {
       await api.profile.followUser(username);
@@ -78,88 +112,43 @@ const HomeFeed = () => {
     }
   };
 
-  const toggleLike = (postId: string) => {
-    setLikedPosts(prev => {
-      const next = new Set(prev);
-      next.has(postId) ? next.delete(postId) : next.add(postId);
-      return next;
-    });
-  };
-
-  const toggleExpand = (postId: string) => {
-    setExpandedPosts(prev => {
-      const next = new Set(prev);
-      next.has(postId) ? next.delete(postId) : next.add(postId);
-      return next;
-    });
-  };
-
-  const handleFeatureClick = (featureType: string, post: any) => {
-    if (!post.featureData) return;
-    
-    // Store the feature data for the destination page
-    if (featureType === 'psychology') {
-      localStorage.setItem('psychology_pending', JSON.stringify({
-        name: post.featureData.name,
-        description: post.featureData.fullContent,
-        timestamp: Date.now()
-      }));
-      navigate('/psychology');
-    } else if (featureType === 'narrative') {
-      localStorage.setItem('narrative_pending', JSON.stringify({
-        title: post.featureData.name,
-        content: post.featureData.fullContent,
-        timestamp: Date.now()
-      }));
-      navigate('/narrative');
-    }
-  };
-
-  const handleLogout = () => {
-    // Clear authentication data
-    localStorage.removeItem('token');
-    localStorage.removeItem('userProfile');
-    // Redirect to login page
-    navigate('/');
-  };
-
   const features = [
     {
-      icon: <Brain size={22} />,
+      icon: <Brain size={18} />,
       label: "Psychology",
       badge: "AI",
       badgeColor: "#6d28d9",
-      description: "Explore the psychological dimensions of characters, narratives, and reader responses through AI-powered analysis.",
+      description: "Explore character psychology and narrative analysis through AI-powered tools.",
       route: "/psychology",
       accent: "#6d28d9",
       accentLight: isDark ? "rgba(109,40,217,0.12)" : "#ede9fe",
     },
     {
-      icon: <GitBranch size={22} />,
+      icon: <GitBranch size={18} />,
       label: "Narrative Analytics",
       badge: "AI",
       badgeColor: "#0090cc",
-      description: "Dissect story structure, plot arcs, and narrative mechanics with intelligent tools built for serious readers.",
+      description: "Analyze story structure and narrative mechanics with intelligent tools.",
       route: "/narrative",
       accent: "#0090cc",
       accentLight: isDark ? "rgba(0,144,204,0.10)" : "#e0f4fd",
     },
     {
-      icon: <TrendingUp size={22} />,
+      icon: <TrendingUp size={18} />,
       label: "Analytics",
       badge: "AI",
       badgeColor: "#0090cc",
-      description: "Track reading patterns, engagement trends, and community insights with data-driven analytics.",
+      description: "Track reading patterns and engagement trends with data-driven insights.",
       route: "/analytics",
       accent: "#0090cc",
       accentLight: isDark ? "rgba(0,144,204,0.10)" : "#e0f4fd",
     },
     {
-      icon: <MessageCircle size={22} />,
+      icon: <MessageCircle size={18} />,
       label: "Forum",
       badge: "AI",
       badgeColor: "#00a36b",
-      description: "Engage in structured discussions with AI-assisted moderation and community-curated threads.",
+      description: "Engage in discussions with AI-assisted moderation and community threads.",
       route: "/forum",
       accent: "#00a36b",
       accentLight: isDark ? "rgba(0,163,107,0.10)" : "#e0faf1",
@@ -218,14 +207,14 @@ const HomeFeed = () => {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout */
+        /* ── Layout ── */
         .sv-layout {
           display: flex;
           max-width: 1280px;
           margin: 0 auto;
         }
 
-        /* Left Sidebar */
+        /* ── Left Sidebar ── */
         .sv-sidebar-left {
           width: 240px;
           height: 100vh;
@@ -333,35 +322,6 @@ const HomeFeed = () => {
           flex-shrink: 0;
         }
 
-        .sv-sidebar-footer {
-          margin-top: auto;
-          padding-top: 24px;
-          border-top: 1px solid var(--border);
-        }
-
-        .sv-logout-btn {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          padding: 10px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--ink-secondary);
-          background: none;
-          border: none;
-          cursor: pointer;
-          text-align: left;
-          width: 100%;
-          transition: all 0.15s;
-          letter-spacing: -0.01em;
-        }
-
-        .sv-logout-btn:hover {
-          background: var(--surface);
-          color: #dc2626;
-        }
-
         .sv-divider {
           height: 1px;
           background: var(--border);
@@ -378,7 +338,7 @@ const HomeFeed = () => {
           padding: 0 4px;
         }
 
-        /* Main */
+        /* ── Main ── */
         .sv-main {
           flex: 1;
           border-right: 1px solid var(--border);
@@ -495,39 +455,9 @@ const HomeFeed = () => {
 
         .sv-plus-btn:hover { background: var(--purple-mid); transform: rotate(90deg); }
 
-        /* Feature Cards */
+        /* ── Feature Cards ── */
         .sv-features-area {
-          padding: 24px 36px;
-        }
-
-        .sv-features-intro {
-          margin-bottom: 20px;
-        }
-
-        .sv-features-eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--purple);
-          margin-bottom: 8px;
-        }
-
-        .sv-features-heading {
-          font-family: var(--font-serif);
-          font-size: 28px;
-          letter-spacing: -0.025em;
-          color: var(--ink);
-          line-height: 1.15;
-          margin-bottom: 8px;
-        }
-
-        .sv-features-subheading {
-          font-size: 14px;
-          color: var(--ink-secondary);
-          line-height: 1.5;
-          max-width: 520px;
-          letter-spacing: -0.005em;
+          padding: 16px 36px 24px;
         }
 
         .sv-feature-grid {
@@ -538,30 +468,26 @@ const HomeFeed = () => {
 
         .sv-feature-card {
           border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
+          border-radius: var(--radius-md);
           padding: 20px;
           cursor: pointer;
           transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s;
           background: var(--white);
           position: relative;
           overflow: hidden;
+          display: flex;
+          align-items: center;
+          gap: 16px;
         }
 
         .sv-feature-card:hover {
-          transform: translateY(-3px);
+          transform: translateY(-2px);
           box-shadow: var(--shadow-md);
         }
 
-        .sv-feature-card-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        }
-
         .sv-feature-icon-wrap {
-          width: 36px;
-          height: 36px;
+          width: 48px;
+          height: 48px;
           border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
@@ -569,39 +495,35 @@ const HomeFeed = () => {
           flex-shrink: 0;
         }
 
-        .sv-feature-arrow {
-          color: var(--ink-muted);
-          transition: transform 0.2s, color 0.2s;
-          flex-shrink: 0;
-        }
-
-        .sv-feature-card:hover .sv-feature-arrow {
-          transform: translate(3px, -3px);
+        .sv-feature-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .sv-feature-label {
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 600;
           color: var(--ink);
           letter-spacing: -0.02em;
-          margin-bottom: 6px;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
         }
 
         .sv-feature-badge {
-          font-size: 8px;
+          font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.07em;
-          padding: 2px 5px;
+          padding: 3px 6px;
           border-radius: 4px;
           color: white;
         }
 
         .sv-feature-desc {
-          font-size: 12px;
+          font-size: 14px;
           color: var(--ink-secondary);
           line-height: 1.4;
           letter-spacing: -0.005em;
@@ -610,9 +532,8 @@ const HomeFeed = () => {
         .sv-feature-cta {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          margin-top: 12px;
-          font-size: 12px;
+          gap: 6px;
+          font-size: 14px;
           font-weight: 600;
           letter-spacing: -0.01em;
           border: none;
@@ -620,11 +541,12 @@ const HomeFeed = () => {
           cursor: pointer;
           padding: 0;
           transition: gap 0.15s;
+          color: var(--purple);
         }
 
         .sv-feature-cta:hover { gap: 8px; }
 
-        /* Right Sidebar */
+        /* ── Right Sidebar ── */
         .sv-sidebar-right {
           width: 280px;
           height: 100vh;
@@ -675,7 +597,7 @@ const HomeFeed = () => {
         .sv-profile-name { font-size: 14px; font-weight: 600; color: var(--ink); }
         .sv-profile-handle { font-size: 12px; color: var(--ink-muted); }
 
-        /* Quick Access Panel */
+        /* ── Quick Access Panel ── */
         .sv-quick-access {
           background: var(--surface);
           border: 1px solid var(--border);
@@ -748,6 +670,144 @@ const HomeFeed = () => {
           transform: translate(2px, -2px);
         }
 
+        @keyframes sv-fadein {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .sv-feature-card { animation: sv-fadein 0.4s ease both; }
+        .sv-feature-card:nth-child(1) { animation-delay: 0.05s; }
+        .sv-feature-card:nth-child(2) { animation-delay: 0.10s; }
+        .sv-feature-card:nth-child(3) { animation-delay: 0.15s; }
+        .sv-feature-card:nth-child(4) { animation-delay: 0.20s; }
+
+        @media (max-width: 900px) {
+          .sv-feature-grid { grid-template-columns: 1fr; }
+        }
+
+        /* User Posts Styles */
+        .sv-user-posts-area {
+          padding: 48px 36px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sv-posts-intro {
+          margin-bottom: 40px;
+        }
+
+        .sv-posts-eyebrow {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--purple);
+          margin-bottom: 10px;
+        }
+
+        .sv-posts-heading {
+          font-family: var(--font-serif);
+          font-size: 34px;
+          letter-spacing: -0.025em;
+          color: var(--ink);
+          line-height: 1.15;
+          margin-bottom: 12px;
+        }
+
+        .sv-posts-subheading {
+          font-size: 15px;
+          color: var(--ink-secondary);
+          line-height: 1.6;
+          max-width: 520px;
+          letter-spacing: -0.005em;
+        }
+
+        .sv-posts-feed {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sv-user-post {
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 24px;
+          background: var(--white);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sv-user-post:hover {
+          border-color: var(--purple-mid);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .sv-user-post-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sv-user-post-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+        }
+
+        .sv-user-post-user {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .sv-user-post-content {
+          margin-bottom: 8px;
+        }
+
+        .sv-user-post-text {
+          font-size: 15px;
+          color: var(--ink);
+          line-height: 1.6;
+          white-space: pre-wrap;
+        }
+
+        .sv-user-post-image {
+          width: 100%;
+          max-width: 400px;
+          border-radius: var(--radius-md);
+        }
+
+        .sv-user-post-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding-top: 14px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sv-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 7px 12px;
+          border-radius: var(--radius-sm);
+          font-size: 15px;
+          font-weight: 500;
+          color: var(--ink-secondary);
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s;
+          letter-spacing: -0.01em;
+        }
+
+        .sv-action-btn:hover { background: var(--surface); color: var(--ink); }
+
+        .sv-action-btn.liked { color: #e11d48; }
+        .sv-action-btn.liked:hover { background: ${isDark ? 'rgba(225,29,72,0.1)' : '#fff1f2'}; }
+        .sv-action-btn.saved { color: var(--purple); }
+        .sv-action-btn.saved:hover { background: var(--purple-light); }
+
+        .sv-action-spacer { flex: 1; }
+
         /* Suggested Accounts Styles */
         .sv-suggested-accounts {
           background: var(--surface);
@@ -773,10 +833,9 @@ const HomeFeed = () => {
         .sv-suggested-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 10px 14px;
+          gap: 12px;
+          padding: 12px 18px;
           border-bottom: 1px solid var(--border);
-          min-width: 0;
         }
 
         .sv-suggested-item:last-child {
@@ -786,9 +845,8 @@ const HomeFeed = () => {
         .sv-suggested-user {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           flex: 1;
-          min-width: 0;
           cursor: pointer;
           padding: 4px;
           border-radius: var(--radius-sm);
@@ -796,7 +854,6 @@ const HomeFeed = () => {
           border: none;
           background: none;
           text-align: left;
-          overflow: hidden;
         }
 
         .sv-suggested-user:hover {
@@ -827,11 +884,10 @@ const HomeFeed = () => {
         .sv-suggested-info {
           flex: 1;
           min-width: 0;
-          overflow: hidden;
         }
 
         .sv-suggested-name {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
           color: var(--ink);
           white-space: nowrap;
@@ -840,21 +896,18 @@ const HomeFeed = () => {
         }
 
         .sv-suggested-username {
-          font-size: 11px;
+          font-size: 12px;
           color: var(--ink-muted);
           margin-top: 2px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .sv-suggested-bio {
-          font-size: 10px;
+          font-size: 11px;
           color: var(--ink-secondary);
-          margin-top: 2px;
+          margin-top: 4px;
           line-height: 1.3;
           display: -webkit-box;
-          -webkit-line-clamp: 1;
+          -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
@@ -864,7 +917,6 @@ const HomeFeed = () => {
           opacity: 0;
           transition: opacity 0.15s, transform 0.15s;
           flex-shrink: 0;
-          display: none;
         }
 
         .sv-suggested-user:hover .sv-suggested-arrow {
@@ -875,282 +927,22 @@ const HomeFeed = () => {
         .sv-suggested-follow {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 4px;
-          padding: 5px 8px;
+          gap: 6px;
+          padding: 6px 12px;
           border-radius: var(--radius-sm);
           background: var(--purple);
           border: none;
           color: white;
           cursor: pointer;
           transition: all 0.15s;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 500;
           flex-shrink: 0;
-          white-space: nowrap;
         }
 
         .sv-suggested-follow:hover {
           background: var(--purple-mid);
           transform: translateY(-1px);
-        }
-
-        /* Global Posts Feed Styles */
-        .sv-posts-feed-section {
-          padding: 32px 36px;
-          border-top: 1px solid var(--border);
-        }
-
-        .sv-posts-feed-intro {
-          margin-bottom: 24px;
-        }
-
-        .sv-posts-eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--purple);
-          margin-bottom: 8px;
-        }
-
-        .sv-posts-heading {
-          font-family: var(--font-serif);
-          font-size: 24px;
-          letter-spacing: -0.025em;
-          color: var(--ink);
-          line-height: 1.15;
-          margin-bottom: 8px;
-        }
-
-        .sv-posts-subheading {
-          font-size: 14px;
-          color: var(--ink-secondary);
-          line-height: 1.5;
-        }
-
-        .sv-posts-feed {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .sv-feed-post {
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          background: var(--white);
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .sv-feed-post:hover {
-          border-color: var(--purple-mid);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .sv-feed-post-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        }
-
-        .sv-feed-post-user {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .sv-feed-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: var(--purple);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          color: white;
-          flex-shrink: 0;
-          overflow: hidden;
-        }
-
-        .sv-feed-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .sv-feed-user-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .sv-feed-username {
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--ink);
-        }
-
-        .sv-feed-handle {
-          font-size: 13px;
-          color: var(--ink-muted);
-        }
-
-        .sv-feed-post-content {
-          margin-bottom: 16px;
-        }
-
-        .sv-feed-post-text {
-          font-size: 15px;
-          color: var(--ink);
-          line-height: 1.6;
-          white-space: pre-wrap;
-        }
-
-        .sv-feed-post-image {
-          width: 100%;
-          max-width: 400px;
-          border-radius: var(--radius-md);
-        }
-
-        .sv-feature-badge-row {
-          margin-bottom: 12px;
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .sv-feature-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .sv-feature-badge.psychology {
-          background: rgba(124, 58, 237, 0.15);
-          color: #7c3aed;
-        }
-
-        .sv-feature-badge.psychology:hover {
-          background: #7c3aed;
-          color: white;
-          transform: translateY(-1px);
-        }
-
-        .sv-feature-badge.narrative {
-          background: rgba(0, 144, 204, 0.15);
-          color: #0090cc;
-        }
-
-        .sv-feature-badge.narrative:hover {
-          background: #0090cc;
-          color: white;
-          transform: translateY(-1px);
-        }
-
-        .sv-feature-data {
-          background: ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'};
-          border-radius: var(--radius-md);
-          padding: 16px;
-          margin-bottom: 12px;
-        }
-
-        .sv-feature-name {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--ink);
-          margin-bottom: 8px;
-        }
-
-        .sv-feature-summary {
-          font-size: 14px;
-          color: var(--ink-secondary);
-          line-height: 1.5;
-        }
-
-        .sv-expand-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          margin-top: 8px;
-          padding: 4px 8px;
-          font-size: 12px;
-          color: var(--purple);
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-weight: 500;
-          transition: color 0.2s;
-        }
-
-        .sv-expand-btn:hover {
-          color: var(--purple-dark);
-          text-decoration: underline;
-        }
-
-        .sv-feed-post-actions {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding-top: 16px;
-          border-top: 1px solid var(--border);
-        }
-
-        .sv-action-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--ink-secondary);
-          background: none;
-          border: none;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-
-        .sv-action-btn:hover {
-          background: var(--surface);
-          color: var(--ink);
-        }
-
-        .sv-action-btn.liked {
-          color: #e11d48;
-        }
-
-        .sv-action-btn.liked:hover {
-          background: ${isDark ? 'rgba(225,29,72,0.1)' : '#fff1f2'};
-        }
-
-        .sv-action-spacer {
-          flex: 1;
-        }
-
-        @keyframes sv-fadein {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .sv-feature-card { animation: sv-fadein 0.4s ease both; }
-        .sv-feature-card:nth-child(1) { animation-delay: 0.05s; }
-        .sv-feature-card:nth-child(2) { animation-delay: 0.10s; }
-        .sv-feature-card:nth-child(3) { animation-delay: 0.15s; }
-        .sv-feature-card:nth-child(4) { animation-delay: 0.20s; }
-
-        @media (max-width: 900px) {
-          .sv-feature-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -1165,17 +957,24 @@ const HomeFeed = () => {
             </div>
 
             <nav className="sv-nav">
-              <button className="sv-nav-item active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                <Home size={16} />
-                Home
-              </button>
-              <button className="sv-nav-item" onClick={() => navigate('/profile')}>
-                <User size={16} />
-                Profile
-              </button>
+              {[
+                { icon: <Home size={16} />, label: "Home", active: true },
+                { icon: <Bookmark size={16} />, label: "Saved" },
+                { icon: <User size={16} />, label: "Profile", route: "/profile" },
+                { icon: <Settings size={16} />, label: "Settings" },
+              ].map(item => (
+                <button 
+                  key={item.label} 
+                  className={`sv-nav-item ${item.active ? 'active' : ''}`}
+                  onClick={() => item.route && navigate(item.route)}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
 
-              {/* <div className="sv-divider" />
-              <p className="sv-section-label">Features</p>
+              <div className="sv-divider" />
+              {/* <p className="sv-section-label">Features</p>
 
               <button className="sv-nav-feature" onClick={() => navigate('/psychology')}>
                 <Brain size={15} style={{ color: '#6d28d9', flexShrink: 0 }} />
@@ -1201,14 +1000,6 @@ const HomeFeed = () => {
                 <span className="sv-nav-badge" style={{ background: '#00a36b' }}>AI</span>
               </button> */}
             </nav>
-
-            {/* Logout Button */}
-            <div className="sv-sidebar-footer">
-              <button className="sv-logout-btn" onClick={handleLogout}>
-                <LogOut size={16} />
-                <span>Log out</span>
-              </button>
-            </div>
           </aside>
 
           {/* Main Content */}
@@ -1227,7 +1018,7 @@ const HomeFeed = () => {
                   </button>
                   <div className="sv-search-wrap">
                     <Search size={13} />
-                    <input className="sv-search" type="text" placeholder="Search anything..." />
+                    <input className="sv-search" type="text" placeholder="Search anything…" />
                   </div>
                   <button className="sv-plus-btn"><Plus size={16} /></button>
                 </div>
@@ -1236,12 +1027,6 @@ const HomeFeed = () => {
 
             {/* Feature Cards */}
             <div className="sv-features-area">
-              <div className="sv-features-intro">
-                <p className="sv-features-eyebrow">Core Features</p>
-                
-                
-              </div>
-
               <div className="sv-feature-grid">
                 {features.map((f) => (
                   <div
@@ -1258,144 +1043,158 @@ const HomeFeed = () => {
                       (e.currentTarget as HTMLElement).style.background = '';
                     }}
                   >
-                    <div className="sv-feature-card-top">
-                      <div
-                        className="sv-feature-icon-wrap"
-                        style={{ background: f.accentLight, color: f.accent }}
-                      >
-                        {f.icon}
-                      </div>
-                      <ArrowUpRight size={16} className="sv-feature-arrow" style={{ color: f.accent }} />
-                    </div>
-
-                    <div className="sv-feature-label">
-                      {f.label}
-                      <span className="sv-feature-badge" style={{ background: f.badgeColor }}>
-                        {f.badge}
-                      </span>
-                    </div>
-
-                    <p className="sv-feature-desc">{f.description}</p>
-
-                    <button
-                      className="sv-feature-cta"
-                      style={{ color: f.accent }}
+                    <div
+                      className="sv-feature-icon-wrap"
+                      style={{ background: f.accentLight, color: f.accent }}
                     >
-                      Open {f.label}
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Global Posts Feed */}
-            {allPosts.length > 0 && (
-              <div className="sv-posts-feed-section">
-                <div className="sv-posts-feed-intro">
-                  <p className="sv-posts-eyebrow">Community Feed</p>
-                  <h2 className="sv-posts-heading">Latest from the Community</h2>
-                  <p className="sv-posts-subheading">See what everyone in StoryVerse is sharing</p>
-                </div>
-                <div className="sv-posts-feed">
-                  {allPosts.map(post => (
-                    <div key={post.id} className="sv-feed-post">
-                      <div className="sv-feed-post-header">
-                        <div className="sv-feed-post-user">
-                          <div className="sv-feed-avatar">
-                            {post.author.avatar ? (
-                              <img src={post.author.avatar} alt={post.author.name} />
-                            ) : (
-                              <span>{post.author.name.charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <div className="sv-feed-user-info">
-                            <div className="sv-feed-username">{post.author.name}</div>
-                            <div className="sv-feed-handle">@{post.author.username}</div>
-                          </div>
-                        </div>
-                        <button className="sv-more-btn">
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </div>
-
-                      <div className="sv-feed-post-content">
-                        {/* Feature Tag Badges - Show both Psychology and Narrative for @AI posts */}
-                        {post.featureTag === 'ai' && (
-                          <div className="sv-feature-badge-row">
-                            <button
-                              className="sv-feature-badge psychology"
-                              onClick={() => handleFeatureClick('psychology', post)}
-                            >
-                              <Brain size={14} />
-                              <span>PSYCHOLOGY</span>
-                            </button>
-                            <button
-                              className="sv-feature-badge narrative"
-                              onClick={() => handleFeatureClick('narrative', post)}
-                            >
-                              <GitBranch size={14} />
-                              <span>NARRATIVE</span>
-                            </button>
-                          </div>
-                        )}
-                        
-                        {/* Feature Data Summary */}
-                        {post.featureData && (
-                          <div className="sv-feature-data">
-                            <div className="sv-feature-name">{post.featureData.name || 'Untitled'}</div>
-                            <div className="sv-feature-summary">
-                              {expandedPosts.has(post.id) 
-                                ? (post.featureData.fullContent || post.featureData.summary || '')
-                                : (post.featureData.summary || post.featureData.fullContent?.substring(0, 100) + '...' || '')}
-                            </div>
-                            {(post.featureData.fullContent && post.featureData.fullContent.length > 100) && (
-                              <button 
-                                className="sv-expand-btn"
-                                onClick={() => toggleExpand(post.id)}
-                              >
-                                {expandedPosts.has(post.id) ? (
-                                  <><ChevronUp size={14} /> Show less</>
-                                ) : (
-                                  <><ChevronDown size={14} /> Show more</>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Regular Post Content (if no feature tag or expanded) */}
-                        {!post.featureTag && (
-                          post.type === 'text' ? (
-                            <p className="sv-feed-post-text">{post.content}</p>
-                          ) : (
-                            <img src={post.imageUrl} alt="Post image" className="sv-feed-post-image" />
-                          )
-                        )}
-                      </div>
-
-                      <div className="sv-feed-post-actions">
-                        <button
-                          className={`sv-action-btn ${likedPosts.has(post.id) ? 'liked' : ''}`}
-                          onClick={() => toggleLike(post.id)}
-                        >
-                          <Heart
-                            size={15}
-                            fill={likedPosts.has(post.id) ? "#e11d48" : "none"}
-                            stroke={likedPosts.has(post.id) ? "#e11d48" : "currentColor"}
-                          />
-                          {post.likes || 0}
-                        </button>
-                        <button className="sv-action-btn">
-                          <MessageCircle size={15} />
-                          {post.comments || 0}
-                        </button>
-                        <div className="sv-action-spacer" />
-                        <button className="sv-action-btn">
-                          <Bookmark size={15} />
-                        </button>
-                      </div>
+                      {f.icon}
                     </div>
+
+                    <div className="sv-feature-content">
+                      <div className="sv-feature-label">
+                        {f.label}
+                        <span className="sv-feature-badge" style={{ background: f.badgeColor }}>
+                          {f.badge}
+                        </span>
+                      </div>
+
+                      <p className="sv-feature-desc">{f.description}</p>
+
+                      <button
+                        className="sv-feature-cta"
+                        style={{ color: f.accent }}
+                      >
+                        Open {f.label}
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </header>
+
+                {/* Feature Cards */}
+                <div className="sv-features-area">
+                  <div className="sv-feature-grid">
+                    {features.map((f) => (
+                      <div
+                        key={f.label}
+                        className="sv-feature-card"
+                        onClick={() => navigate(f.route)}
+                        style={{ '--feature-accent': f.accent } as React.CSSProperties}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = f.accent;
+                          (e.currentTarget as HTMLElement).style.background = f.accentLight;
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = '';
+                          (e.currentTarget as HTMLElement).style.background = '';
+                        }}
+                      >
+                        <div
+                          className="sv-feature-icon-wrap"
+                          style={{ background: f.accentLight, color: f.accent }}
+                        >
+                          {f.icon}
+                        </div>
+
+                        <div className="sv-feature-content">
+                          <div className="sv-feature-label">
+                            {f.label}
+                            <span className="sv-feature-badge" style={{ background: f.badgeColor }}>
+                              {f.badge}
+                            </span>
+                          </div>
+
+                          <p className="sv-feature-desc">{f.description}</p>
+
+                          <button
+                            className="sv-feature-cta"
+                            style={{ color: f.accent }}
+                          >
+                            Open {f.label}
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* User Posts Section */}
+                {userProfile && userPosts.length > 0 && (
+                  <div className="sv-user-posts-area">
+                    <div className="sv-posts-intro">
+                      <p className="sv-posts-eyebrow">Recent Posts</p>
+                      <h2 className="sv-posts-heading">
+                        Recent Activity
+                      </h2>
+                      <p className="sv-posts-subheading">
+                        Your latest thoughts and contributions to the StoryVerse community.
+                      </p>
+                    </div>
+                    <div className="sv-posts-feed">
+                      {userPosts.map(post => (
+                        <article key={post.id} className="sv-user-post">
+                          <div className="sv-user-post-inner">
+                            {/* User Row */}
+                            <div className="sv-user-post-header">
+                              <div className="sv-user-post-user">
+                                <div className="sv-avatar" style={{ background: '#6d28d9', width: 38, height: 38, fontSize: 12 }}>
+                                  {userProfile.avatar}
+                                </div>
+                                <div>
+                                  <div className="sv-user-name">{userProfile.username}</div>
+                                  <div className="sv-user-meta">
+                                    <span className="sv-user-handle">@{userProfile.username.toLowerCase()}</span>
+                                    <span className="sv-user-dot" />
+                                    <span className="sv-user-time">{post.timestamp}</span>
+                                  </div>
+                                </div>
+                              </div>
+                          </div>
+                          <button className="sv-more-btn"><MoreHorizontal size={16} /></button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="sv-user-post-content">
+                          {post.type === 'text' ? (
+                            <p className="sv-user-post-text">{post.content}</p>
+                          ) : (
+                            <img src={post.imageUrl} alt="Post image" className="sv-user-post-image" />
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="sv-user-post-actions">
+                          <button
+                            className={`sv-action-btn ${likedPosts.has(post.id) ? 'liked' : ''}`}
+                            onClick={() => toggleLike(post.id)}
+                          >
+                            <Heart
+                              size={15}
+                              fill={likedPosts.has(post.id) ? "#e11d48" : "none"}
+                              stroke={likedPosts.has(post.id) ? "#e11d48" : "currentColor"}
+                            />
+                            {post.likeCount || 0}
+                          </button>
+                          <button className="sv-action-btn">
+                            <MessageCircle size={15} />
+                            {post.commentCount || 0}
+                          </button>
+                          <div className="sv-action-spacer" />
+                          <button
+                            className={`sv-action-btn ${savedPosts.has(post.id) ? 'saved' : ''}`}
+                            onClick={() => toggleSave(post.id)}
+                          >
+                            <Bookmark
+                              size={15}
+                              fill={savedPosts.has(post.id) ? "var(--purple)" : "none"}
+                              stroke={savedPosts.has(post.id) ? "var(--purple)" : "currentColor"}
+                            />
+                            {savedPosts.has(post.id) ? "Saved" : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
                   ))}
                 </div>
               </div>
@@ -1406,12 +1205,10 @@ const HomeFeed = () => {
           <aside className="sv-sidebar-right">
             {/* Profile */}
             <button className="sv-user-profile" onClick={() => navigate('/profile')}>
-              <div className="sv-profile-avatar">
-                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'ME'}
-              </div>
+              <div className="sv-profile-avatar">ME</div>
               <div>
-                <div className="sv-profile-name">{currentUser?.name || 'Your Profile'}</div>
-                <div className="sv-profile-handle">@{currentUser?.username || 'yourusername'}</div>
+                <div className="sv-profile-name">Your Profile</div>
+                <div className="sv-profile-handle">@yourusername</div>
               </div>
               <ArrowUpRight size={14} style={{ marginLeft: 'auto', color: 'var(--ink-muted)' }} />
             </button>
@@ -1474,7 +1271,7 @@ const HomeFeed = () => {
                       onClick={() => handleFollow(user.username)}
                     >
                       <UserPlus size={14} />
-                      
+                      Follow
                     </button>
                   </div>
                 ))
