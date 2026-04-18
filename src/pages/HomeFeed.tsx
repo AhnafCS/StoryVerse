@@ -1,94 +1,104 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import {
-  Search, Plus, Heart, MessageCircle, TrendingUp, Book, Film, Tv,
-  Star, MoreHorizontal, Home, Compass, Bookmark, Settings, User,
-  Calendar, ChevronRight, Flame, Sparkles, ArrowUpRight, Brain, Sun, Moon,GitBranch
+  Search, Plus, Brain, TrendingUp, MessageCircle,
+  Home, Bookmark, Settings, User,
+  Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, Heart, MoreHorizontal
 } from "lucide-react";
+
+interface UserPost {
+  id: string;
+  type: 'text' | 'image';
+  content: string;
+  timestamp: string;
+  likes: number;
+  comments: number;
+  liked?: boolean;
+  saved?: boolean;
+}
+
+interface UserProfile {
+  username: string;
+  bio: string;
+  avatar: string;
+  posts: UserPost[];
+}
 
 const HomeFeed = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-  const [activeTab, setActiveTab] = useState("all");
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
 
-  const toggleLike = (id: number) => {
+  // Load user profile from localStorage
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      setUserProfile(JSON.parse(savedProfile));
+    }
+  }, []);
+
+  const toggleLike = (postId: string) => {
     setLikedPosts(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
       return next;
     });
   };
 
-  const toggleSave = (id: number) => {
+  const toggleSave = (postId: string) => {
     setSavedPosts(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
       return next;
     });
   };
 
-  const sidebarSuggestions = [
-    { id: 1, name: "Alex Chen", handle: "@alexchen", initials: "AC", color: "#7c3aed" },
-    { id: 2, name: "Sarah Miller", handle: "@sarahm", initials: "SM", color: "#059669" },
-    { id: 3, name: "David Kim", handle: "@davidk", initials: "DK", color: "#dc2626" },
-  ];
-
-  const sidebarTasks = [
-    { id: 1, title: "Calendar & Chat App", progress: 75, color: "#7c3aed", due: "Mar 20" },
-    { id: 2, title: "Model Answer", progress: 100, color: "#059669", due: "Done" },
-    { id: 3, title: "Figma Design System", progress: 60, color: "#f59e0b", due: "Mar 25" },
-  ];
-
-  const trending = [
-    { title: "One Piece", emoji: "🏴‍☠️", type: "Manga" },
-    { title: "The Witcher", emoji: "⚔️", type: "Series" },
-    { title: "Naruto", emoji: "🍃", type: "Anime" },
-    { title: "Harry Potter", emoji: "🧙", type: "Book" },
-    { title: "Stranger Things", emoji: "🔦", type: "Series" },
-  ];
-
-  const mockPosts = [
+  const features = [
     {
-      id: 1, type: "book", title: "Dune", subtitle: "Frank Herbert · 1965",
-      user: "BookLover42", handle: "@booklover42", initials: "BL", avatarColor: "#7c3aed",
-      rating: 5,
-      review: "A masterpiece of science fiction — the world-building is unmatched. Herbert weaves ecology, religion and power into something that feels genuinely alive. Required reading.",
-      likes: 234, comments: 45, timestamp: "2h ago", cover: "🏜️",
-      coverBg: "linear-gradient(135deg, #c4a35a 0%, #8b6914 50%, #3d2b0a 100%)",
-      tag: "Sci-Fi Classic"
+      icon: <Brain size={18} />,
+      label: "Psychology",
+      badge: "AI",
+      badgeColor: "#6d28d9",
+      description: "Explore character psychology and narrative analysis through AI-powered tools.",
+      route: "/psychology",
+      accent: "#6d28d9",
+      accentLight: isDark ? "rgba(109,40,217,0.12)" : "#ede9fe",
     },
     {
-      id: 2, type: "anime", title: "Attack on Titan", subtitle: "MAPPA · 2013–2023",
-      user: "AnimeFan99", handle: "@animefan99", initials: "AF", avatarColor: "#dc2626",
-      rating: 5,
-      review: "The character arcs hit harder than anything I've seen in animation. Every season raises the stakes and the finale lands with real weight. A generational series.",
-      likes: 567, comments: 89, timestamp: "5h ago", cover: "⚔️",
-      coverBg: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-      tag: "Anime · Action"
+      icon: <GitBranch size={18} />,
+      label: "Narrative Analytics",
+      badge: "AI",
+      badgeColor: "#0090cc",
+      description: "Analyze story structure and narrative mechanics with intelligent tools.",
+      route: "/narrative",
+      accent: "#0090cc",
+      accentLight: isDark ? "rgba(0,144,204,0.10)" : "#e0f4fd",
     },
     {
-      id: 3, type: "series", title: "Breaking Bad", subtitle: "Vince Gilligan · AMC",
-      user: "TVCritic", handle: "@tvcritic", initials: "TC", avatarColor: "#059669",
-      rating: 5,
-      review: "Walter White's arc is the gold standard. Sharp writing, impeccable pacing, and performances that don't miss a beat. TV storytelling at its ceiling.",
-      likes: 892, comments: 156, timestamp: "1d ago", cover: "🎭",
-      coverBg: "linear-gradient(135deg, #1c1c1c 0%, #2d4a1e 50%, #1a3a10 100%)",
-      tag: "Drama · Crime"
+      icon: <TrendingUp size={18} />,
+      label: "Analytics",
+      badge: "AI",
+      badgeColor: "#0090cc",
+      description: "Track reading patterns and engagement trends with data-driven insights.",
+      route: "/analytics",
+      accent: "#0090cc",
+      accentLight: isDark ? "rgba(0,144,204,0.10)" : "#e0f4fd",
+    },
+    {
+      icon: <MessageCircle size={18} />,
+      label: "Forum",
+      badge: "AI",
+      badgeColor: "#00a36b",
+      description: "Engage in discussions with AI-assisted moderation and community threads.",
+      route: "/forum",
+      accent: "#00a36b",
+      accentLight: isDark ? "rgba(0,163,107,0.10)" : "#e0faf1",
     },
   ];
-
-  const tabs = ["all", "books", "anime", "series"];
-
-  const getTypeIcon = (type: string) => {
-    const cls = "w-3.5 h-3.5";
-    if (type === "book") return <Book className={cls} />;
-    if (type === "anime") return <Film className={cls} />;
-    return <Tv className={cls} />;
-  };
 
   return (
     <>
@@ -142,7 +152,14 @@ const HomeFeed = () => {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Sidebar ── */
+        /* ── Layout ── */
+        .sv-layout {
+          display: flex;
+          max-width: 1280px;
+          margin: 0 auto;
+        }
+
+        /* ── Left Sidebar ── */
         .sv-sidebar-left {
           width: 240px;
           height: 100vh;
@@ -216,69 +233,59 @@ const HomeFeed = () => {
           font-weight: 500;
         }
 
-        .sv-nav-item.active svg { opacity: 1; }
+        .sv-nav-feature {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          padding: 10px 12px;
+          border-radius: var(--radius-sm);
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--ink);
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          width: 100%;
+          transition: background 0.15s, color 0.15s;
+          letter-spacing: -0.01em;
+        }
+
+        .sv-nav-feature:hover {
+          background: var(--surface);
+        }
+
+        .sv-nav-badge {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: white;
+          margin-left: auto;
+          flex-shrink: 0;
+        }
 
         .sv-divider {
           height: 1px;
           background: var(--border);
-          margin: 20px 0;
+          margin: 16px 0;
         }
 
         .sv-section-label {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.09em;
           text-transform: uppercase;
           color: var(--ink-muted);
-          margin-bottom: 14px;
+          margin-bottom: 10px;
           padding: 0 4px;
         }
-
-        .sv-suggestion {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
-        }
-
-        .sv-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          color: white;
-          flex-shrink: 0;
-          letter-spacing: 0.02em;
-        }
-
-        .sv-suggestion-info { flex: 1; min-width: 0; }
-        .sv-suggestion-name { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sv-suggestion-handle { font-size: 11px; color: var(--ink-muted); }
-
-        .sv-add-btn {
-          font-size: 12px;
-          font-weight: 500;
-          color: var(--purple);
-          background: var(--purple-light);
-          border: none;
-          padding: 4px 10px;
-          border-radius: 20px;
-          cursor: pointer;
-          transition: background 0.15s;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-
-        .sv-add-btn:hover { background: #ddd6fe; }
 
         /* ── Main ── */
         .sv-main {
           flex: 1;
-          max-width: 640px;
           border-right: 1px solid var(--border);
           min-height: 100vh;
         }
@@ -286,12 +293,12 @@ const HomeFeed = () => {
         .sv-header {
           position: sticky;
           top: 0;
-          background: ${isDark ? 'rgba(10,10,10,0.85)' : 'rgba(255,255,255,0.85)'};
+          background: ${isDark ? 'rgba(10,10,10,0.88)' : 'rgba(255,255,255,0.88)'};
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--border);
           z-index: 50;
-          padding: 16px 28px;
+          padding: 18px 36px;
         }
 
         .sv-header-inner {
@@ -300,15 +307,12 @@ const HomeFeed = () => {
           justify-content: space-between;
         }
 
-        .sv-greeting {
-          display: flex;
-          flex-direction: column;
-        }
+        .sv-greeting { display: flex; flex-direction: column; }
 
         .sv-greeting-sub {
-          font-size: 13px;
-          font-weight: 500;
-          letter-spacing: 0.07em;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.09em;
           text-transform: uppercase;
           color: var(--ink-muted);
         }
@@ -319,10 +323,31 @@ const HomeFeed = () => {
           letter-spacing: -0.02em;
           color: var(--ink);
           line-height: 1.1;
-          margin-top: 1px;
+          margin-top: 2px;
         }
 
         .sv-header-actions { display: flex; align-items: center; gap: 10px; }
+
+        .sv-theme-btn {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 14px;
+          border-radius: 100px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--ink-secondary);
+        }
+
+        .sv-theme-btn:hover {
+          border-color: var(--purple-mid);
+          background: var(--purple-light);
+          color: var(--purple);
+        }
 
         .sv-search-wrap {
           position: relative;
@@ -342,7 +367,7 @@ const HomeFeed = () => {
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 100px;
-          font-size: 15px;
+          font-size: 14px;
           font-family: var(--font-sans);
           color: var(--ink);
           outline: none;
@@ -355,6 +380,8 @@ const HomeFeed = () => {
           box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
           width: 240px;
         }
+
+        .sv-search::placeholder { color: var(--ink-muted); }
 
         .sv-plus-btn {
           width: 36px;
@@ -373,305 +400,106 @@ const HomeFeed = () => {
 
         .sv-plus-btn:hover { background: var(--purple-mid); transform: rotate(90deg); }
 
-        /* ── Theme Toggle ── */
-        .sv-theme-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          border-radius: 100px;
-          background: var(--surface);
+        /* ── Feature Cards ── */
+        .sv-features-area {
+          padding: 16px 36px 24px;
+        }
+
+        .sv-feature-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .sv-feature-card {
           border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 20px;
           cursor: pointer;
-          transition: all 0.2s;
-          font-size: 12px;
-          font-weight: 500;
-          color: var(--ink-secondary);
-        }
-
-        .sv-theme-btn:hover {
-          border-color: var(--purple-mid);
-          background: var(--purple-light);
-          color: var(--purple);
-        }
-
-        /* ── Tabs ── */
-        .sv-tabs {
-          display: flex;
-          gap: 4px;
-          padding: 16px 28px 0;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .sv-tab {
-          padding: 8px 16px;
-          font-size: 15px;
-          font-weight: 500;
-          color: var(--ink-muted);
-          background: none;
-          border: none;
-          border-bottom: 2px solid transparent;
-          margin-bottom: -1px;
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
-          text-transform: capitalize;
-          letter-spacing: -0.01em;
-        }
-
-        .sv-tab:hover { color: var(--ink); }
-        .sv-tab.active { color: var(--ink); border-bottom-color: var(--purple); font-weight: 600; }
-
-        /* ── Trending ── */
-        .sv-trending {
-          padding: 24px 28px;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .sv-trending-header {
+          transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s;
+          background: var(--white);
+          position: relative;
+          overflow: hidden;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          margin-bottom: 18px;
+          gap: 16px;
         }
 
-        .sv-trending-title {
+        .sv-feature-card:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md);
+        }
+
+        .sv-feature-icon-wrap {
+          width: 48px;
+          height: 48px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
-          gap: 7px;
-          font-size: 14px;
-          font-weight: 600;
-          letter-spacing: 0.07em;
-          text-transform: uppercase;
-          color: var(--ink-secondary);
-        }
-
-        .sv-trending-more {
-          font-size: 12px;
-          color: var(--purple);
-          background: none;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 3px;
-          font-weight: 500;
-          transition: gap 0.15s;
-        }
-
-        .sv-trending-more:hover { gap: 6px; }
-
-        .sv-trending-scroll {
-          display: flex;
-          gap: 10px;
-          overflow-x: auto;
-          padding-bottom: 4px;
-          scrollbar-width: none;
-        }
-
-        .sv-trending-scroll::-webkit-scrollbar { display: none; }
-
-        .sv-trending-chip {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 100px;
-          white-space: nowrap;
-          cursor: pointer;
-          transition: all 0.2s;
+          justify-content: center;
           flex-shrink: 0;
         }
 
-        .sv-trending-chip:hover {
-          background: var(--purple);
-          border-color: var(--purple);
-          color: white;
-          transform: translateY(-1px);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .sv-trending-chip:hover .sv-chip-type { color: rgba(255,255,255,0.6); }
-
-        .sv-chip-emoji { font-size: 15px; }
-        .sv-chip-title { font-size: 15px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; }
-        .sv-trending-chip:hover .sv-chip-title { color: white; }
-        .sv-chip-type { font-size: 11px; color: var(--ink-muted); }
-
-        /* ── Feed ── */
-        .sv-feed { padding: 0; }
-
-        .sv-post {
-          border-bottom: 1px solid var(--border);
-          transition: background 0.2s;
-          cursor: pointer;
-        }
-
-        .sv-post:hover { background: ${isDark ? '#1a1a1a' : '#fdfdfd'}; }
-
-        .sv-post-inner { padding: 24px 28px; }
-
-        .sv-post-header {
+        .sv-feature-content {
+          flex: 1;
           display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 16px;
+          flex-direction: column;
+          gap: 8px;
         }
 
-        .sv-post-user { display: flex; align-items: center; gap: 11px; }
-
-        .sv-user-name {
+        .sv-feature-label {
           font-size: 16px;
           font-weight: 600;
           color: var(--ink);
-          letter-spacing: -0.01em;
-        }
-
-        .sv-user-meta {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-top: 2px;
-        }
-
-        .sv-user-handle { font-size: 12px; color: var(--ink-muted); }
-        .sv-user-dot { width: 2px; height: 2px; background: var(--ink-muted); border-radius: 50%; }
-        .sv-user-time { font-size: 12px; color: var(--ink-muted); }
-
-        .sv-more-btn {
-          background: none;
-          border: none;
-          color: var(--ink-muted);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 6px;
-          display: flex;
-          transition: background 0.15s, color 0.15s;
-        }
-
-        .sv-more-btn:hover { background: var(--surface); color: var(--ink); }
-
-        .sv-post-cover {
-          border-radius: var(--radius-lg);
-          height: 200px;
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          padding: 16px;
-          margin-bottom: 16px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .sv-cover-noise {
-          position: absolute;
-          inset: 0;
-          opacity: 0.04;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-          pointer-events: none;
-        }
-
-        .sv-cover-emoji {
-          font-size: 52px;
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-          line-height: 1;
-        }
-
-        .sv-cover-tag {
-          background: rgba(255,255,255,0.18);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,0.25);
-          color: white;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.05em;
-          padding: 5px 11px;
-          border-radius: 100px;
-        }
-
-        .sv-post-meta-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 10px;
-        }
-
-        .sv-post-title-group {}
-
-        .sv-post-title {
-          font-family: var(--font-serif);
-          font-size: 24px;
           letter-spacing: -0.02em;
-          color: var(--ink);
-          line-height: 1.15;
-        }
-
-        .sv-post-subtitle {
-          font-size: 12px;
-          color: var(--ink-muted);
-          margin-top: 2px;
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 8px;
         }
 
-        .sv-stars { display: flex; gap: 2px; }
+        .sv-feature-badge {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          padding: 3px 6px;
+          border-radius: 4px;
+          color: white;
+        }
 
-        .sv-star { color: #f59e0b; }
-        .sv-star-empty { color: var(--ink-faint); }
-
-        .sv-review {
-          font-size: 16px;
-          line-height: 1.65;
-          color: ${isDark ? '#c0c0c0' : '#3a3a3a'};
-          margin-bottom: 18px;
+        .sv-feature-desc {
+          font-size: 14px;
+          color: var(--ink-secondary);
+          line-height: 1.4;
           letter-spacing: -0.005em;
         }
 
-        .sv-post-actions {
-          display: flex;
+        .sv-feature-cta {
+          display: inline-flex;
           align-items: center;
-          gap: 4px;
-          padding-top: 14px;
-          border-top: 1px solid var(--border);
-        }
-
-        .sv-action-btn {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 7px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 15px;
-          font-weight: 500;
-          color: var(--ink-secondary);
-          background: none;
-          border: none;
-          cursor: pointer;
-          transition: all 0.15s;
+          gap: 6px;
+          font-size: 14px;
+          font-weight: 600;
           letter-spacing: -0.01em;
+          border: none;
+          background: none;
+          cursor: pointer;
+          padding: 0;
+          transition: gap 0.15s;
+          color: var(--purple);
         }
 
-        .sv-action-btn:hover { background: var(--surface); color: var(--ink); }
-
-        .sv-action-btn.liked { color: #e11d48; }
-        .sv-action-btn.liked:hover { background: ${isDark ? 'rgba(225,29,72,0.1)' : '#fff1f2'}; }
-        .sv-action-btn.saved { color: var(--purple); }
-        .sv-action-btn.saved:hover { background: var(--purple-light); }
-
-        .sv-action-spacer { flex: 1; }
+        .sv-feature-cta:hover { gap: 8px; }
 
         /* ── Right Sidebar ── */
         .sv-sidebar-right {
-          width: 300px;
+          width: 280px;
           height: 100vh;
           position: sticky;
           top: 0;
           display: flex;
           flex-direction: column;
-          padding: 28px 24px;
+          padding: 28px 22px;
           flex-shrink: 0;
           overflow-y: auto;
           scrollbar-width: none;
@@ -714,155 +542,216 @@ const HomeFeed = () => {
         .sv-profile-name { font-size: 14px; font-weight: 600; color: var(--ink); }
         .sv-profile-handle { font-size: 12px; color: var(--ink-muted); }
 
-        .sv-project-card {
+        /* ── Quick Access Panel ── */
+        .sv-quick-access {
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 14px;
-          margin-bottom: 10px;
-          transition: border-color 0.15s, box-shadow 0.15s;
-          cursor: pointer;
+          border-radius: var(--radius-lg);
+          overflow: hidden;
         }
 
-        .sv-project-card:hover {
-          border-color: rgba(109,40,217,0.25);
-          box-shadow: var(--shadow-xs);
+        .sv-quick-access-header {
+          padding: 16px 18px 12px;
+          border-bottom: 1px solid var(--border);
         }
 
-        .sv-project-title {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--ink);
-          margin-bottom: 10px;
-          letter-spacing: -0.01em;
-          line-height: 1.3;
+        .sv-quick-access-title {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
+          color: var(--ink-muted);
         }
 
-        .sv-project-meta {
+        .sv-quick-item {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          margin-bottom: 8px;
-        }
-
-        .sv-project-due {
-          font-size: 11px;
-          font-weight: 500;
-          color: var(--ink-muted);
-          padding: 2px 8px;
-          background: var(--border);
-          border-radius: 100px;
-        }
-
-        .sv-project-pct { font-size: 11px; font-weight: 600; color: var(--ink-secondary); }
-
-        .sv-progress-track {
-          width: 100%;
-          height: 3px;
-          background: var(--border);
-          border-radius: 100px;
-          overflow: hidden;
-        }
-
-        .sv-progress-fill {
-          height: 100%;
-          border-radius: 100px;
-          transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .sv-event-card {
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          background: var(--purple);
-          color: white;
-          position: relative;
-          overflow: hidden;
-          margin-top: 4px;
-        }
-
-        .sv-event-bg {
-          position: absolute;
-          top: -30px;
-          right: -30px;
-          width: 120px;
-          height: 120px;
-          background: rgba(255,255,255,0.04);
-          border-radius: 50%;
-        }
-
-        .sv-event-bg2 {
-          position: absolute;
-          bottom: -20px;
-          left: -20px;
-          width: 80px;
-          height: 80px;
-          background: rgba(255,255,255,0.03);
-          border-radius: 50%;
-        }
-
-        .sv-event-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.6);
-          margin-bottom: 10px;
-        }
-
-        .sv-event-title {
-          font-family: var(--font-serif);
-          font-size: 20px;
-          letter-spacing: -0.02em;
-          margin-bottom: 6px;
-          line-height: 1.2;
-        }
-
-        .sv-event-desc {
-          font-size: 12px;
-          color: rgba(255,255,255,0.65);
-          line-height: 1.5;
-          margin-bottom: 16px;
-        }
-
-        .sv-event-btn {
-          width: 100%;
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.15);
-          color: white;
-          padding: 9px;
-          border-radius: var(--radius-sm);
-          font-size: 13px;
-          font-weight: 600;
+          gap: 13px;
+          padding: 13px 18px;
           cursor: pointer;
           transition: background 0.15s;
-          font-family: var(--font-sans);
-          letter-spacing: -0.01em;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .sv-quick-item:last-child { border-bottom: none; }
+
+        .sv-quick-item:hover { background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)'}; }
+
+        .sv-quick-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
+          flex-shrink: 0;
         }
 
-        .sv-event-btn:hover { background: rgba(255,255,255,0.2); }
+        .sv-quick-icon svg {
+          width: 15px;
+          height: 15px;
+        }
 
-        .sv-layout {
-          display: flex;
-          max-width: 1280px;
-          margin: 0 auto;
+        .sv-quick-label {
+          font-size: 13.5px;
+          font-weight: 500;
+          color: var(--ink);
+          letter-spacing: -0.01em;
+          flex: 1;
+        }
+
+        .sv-quick-arrow {
+          color: var(--ink-muted);
+          opacity: 0;
+          transition: opacity 0.15s, transform 0.15s;
+        }
+
+        .sv-quick-item:hover .sv-quick-arrow {
+          opacity: 1;
+          transform: translate(2px, -2px);
         }
 
         @keyframes sv-fadein {
-          from { opacity: 0; transform: translateY(10px); }
+          from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        .sv-post { animation: sv-fadein 0.4s ease both; }
-        .sv-post:nth-child(1) { animation-delay: 0.05s; }
-        .sv-post:nth-child(2) { animation-delay: 0.12s; }
-        .sv-post:nth-child(3) { animation-delay: 0.19s; }
+        .sv-feature-card { animation: sv-fadein 0.4s ease both; }
+        .sv-feature-card:nth-child(1) { animation-delay: 0.05s; }
+        .sv-feature-card:nth-child(2) { animation-delay: 0.10s; }
+        .sv-feature-card:nth-child(3) { animation-delay: 0.15s; }
+        .sv-feature-card:nth-child(4) { animation-delay: 0.20s; }
+
+        @media (max-width: 900px) {
+          .sv-feature-grid { grid-template-columns: 1fr; }
+        }
+
+        /* User Posts Styles */
+        .sv-user-posts-area {
+          padding: 48px 36px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sv-posts-intro {
+          margin-bottom: 40px;
+        }
+
+        .sv-posts-eyebrow {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--purple);
+          margin-bottom: 10px;
+        }
+
+        .sv-posts-heading {
+          font-family: var(--font-serif);
+          font-size: 34px;
+          letter-spacing: -0.025em;
+          color: var(--ink);
+          line-height: 1.15;
+          margin-bottom: 12px;
+        }
+
+        .sv-posts-subheading {
+          font-size: 15px;
+          color: var(--ink-secondary);
+          line-height: 1.6;
+          max-width: 520px;
+          letter-spacing: -0.005em;
+        }
+
+        .sv-posts-feed {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sv-user-post {
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 24px;
+          background: var(--white);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sv-user-post:hover {
+          border-color: var(--purple-mid);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .sv-user-post-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sv-user-post-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+        }
+
+        .sv-user-post-user {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .sv-user-post-content {
+          margin-bottom: 8px;
+        }
+
+        .sv-user-post-text {
+          font-size: 15px;
+          color: var(--ink);
+          line-height: 1.6;
+          white-space: pre-wrap;
+        }
+
+        .sv-user-post-image {
+          width: 100%;
+          max-width: 400px;
+          border-radius: var(--radius-md);
+        }
+
+        .sv-user-post-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding-top: 14px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sv-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 7px 12px;
+          border-radius: var(--radius-sm);
+          font-size: 15px;
+          font-weight: 500;
+          color: var(--ink-secondary);
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s;
+          letter-spacing: -0.01em;
+        }
+
+        .sv-action-btn:hover { background: var(--surface); color: var(--ink); }
+
+        .sv-action-btn.liked { color: #e11d48; }
+        .sv-action-btn.liked:hover { background: ${isDark ? 'rgba(225,29,72,0.1)' : '#fff1f2'}; }
+        .sv-action-btn.saved { color: var(--purple); }
+        .sv-action-btn.saved:hover { background: var(--purple-light); }
+
+        .sv-action-spacer { flex: 1; }
       `}</style>
 
       <div className="sv-root">
@@ -878,300 +767,242 @@ const HomeFeed = () => {
             <nav className="sv-nav">
               {[
                 { icon: <Home size={16} />, label: "Home", active: true },
-                { icon: <Compass size={16} />, label: "Explore" },
                 { icon: <Bookmark size={16} />, label: "Saved" },
-                { icon: <User size={16} />, label: "Profile" },
+                { icon: <User size={16} />, label: "Profile", route: "/profile" },
                 { icon: <Settings size={16} />, label: "Settings" },
               ].map(item => (
-                <button key={item.label} className={`sv-nav-item ${item.active ? 'active' : ''}`}>
+                <button 
+                  key={item.label} 
+                  className={`sv-nav-item ${item.active ? 'active' : ''}`}
+                  onClick={() => item.route && navigate(item.route)}
+                >
                   {item.icon}
                   {item.label}
                 </button>
               ))}
-              <button 
-                className="sv-nav-item" 
-                onClick={() => navigate('/psychology')}
-                style={{ marginTop: 8 }}
-              >
-                <Brain size={16} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Psychology
-                  <span style={{ 
-                    fontSize: 9, 
-                    fontWeight: 600, 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    padding: '2px 6px',
-                    background: 'var(--purple)',
-                    color: 'white',
-                    borderRadius: 4
-                  }}>AI</span>
-                </span>
+
+              <div className="sv-divider" />
+              {/* <p className="sv-section-label">Features</p>
+
+              <button className="sv-nav-feature" onClick={() => navigate('/psychology')}>
+                <Brain size={15} style={{ color: '#6d28d9', flexShrink: 0 }} />
+                Psychology
+                <span className="sv-nav-badge" style={{ background: '#6d28d9' }}>AI</span>
               </button>
-  <button 
-    className="sv-nav-item" 
-    onClick={() => navigate('/narrative')}
-    style={{ marginTop: 4 }}
-  >
-    <GitBranch size={16} />
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      Narrative
-      <span style={{ 
-        fontSize: 9, 
-        fontWeight: 600, 
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        padding: '2px 6px',
-        background: '#0090cc',
-        color: 'white',
-        borderRadius: 4
-      }}>AI</span>
-    </span>
-  </button>
 
-  <button 
-    className="sv-nav-item" 
-    onClick={() => navigate('/analytics')}
-    style={{ marginTop: 8 }}
-  >
-    <TrendingUp size={16} />
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      Analytics
-      <span style={{ 
-        fontSize: 9, 
-        fontWeight: 600, 
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        padding: '2px 6px',
-        background: '#0090cc',
-        color: 'white',
-        borderRadius: 4
-      }}>AI</span>
-    </span>
-  </button>
+              <button className="sv-nav-feature" onClick={() => navigate('/narrative')}>
+                <GitBranch size={15} style={{ color: '#0090cc', flexShrink: 0 }} />
+                Narrative
+                <span className="sv-nav-badge" style={{ background: '#0090cc' }}>AI</span>
+              </button>
 
-  <button 
-    className="sv-nav-item" 
-    onClick={() => navigate('/forum')}
-    style={{ marginTop: 8 }}
-  >
-    <MessageCircle size={16} />
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      Forum
-      <span style={{ 
-        fontSize: 9, 
-        fontWeight: 600, 
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        padding: '2px 6px',
-        background: '#00cc7d',
-        color: 'white',
-        borderRadius: 4
-      }}>AI</span>
-    </span>
-  </button>
-</nav>
+              <button className="sv-nav-feature" onClick={() => navigate('/analytics')}>
+                <TrendingUp size={15} style={{ color: '#0090cc', flexShrink: 0 }} />
+                Analytics
+                <span className="sv-nav-badge" style={{ background: '#0090cc' }}>AI</span>
+              </button>
 
-            <div className="sv-divider" />
+              <button className="sv-nav-feature" onClick={() => navigate('/forum')}>
+                <MessageCircle size={15} style={{ color: '#00a36b', flexShrink: 0 }} />
+                Forum
+                <span className="sv-nav-badge" style={{ background: '#00a36b' }}>AI</span>
+              </button> */}
+            </nav>
           </aside>
 
-          {/* Main Feed */}
+          {/* Main Content */}
           <main className="sv-main">
             {/* Header */}
             <header className="sv-header">
               <div className="sv-header-inner">
                 <div className="sv-greeting">
-                  <span className="sv-greeting-sub">Sunday, March 15</span>
+                  <span className="sv-greeting-sub">StoryVerse</span>
                   <span className="sv-greeting-main">Welcome back</span>
                 </div>
                 <div className="sv-header-actions">
                   <button className="sv-theme-btn" onClick={toggleTheme}>
-                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                    {isDark ? <Sun size={13} /> : <Moon size={13} />}
                     {isDark ? 'Light' : 'Dark'}
                   </button>
                   <div className="sv-search-wrap">
-                    <Search size={14} />
+                    <Search size={13} />
                     <input className="sv-search" type="text" placeholder="Search anything…" />
                   </div>
                   <button className="sv-plus-btn"><Plus size={16} /></button>
                 </div>
               </div>
-
-              {/* Tabs */}
-              <div className="sv-tabs">
-                {tabs.map(tab => (
-                  <button
-                    key={tab}
-                    className={`sv-tab ${activeTab === tab ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {tab === "all" ? "For You" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                ))}
-              </div>
             </header>
 
-            {/* Trending */}
-            <section className="sv-trending">
-              <div className="sv-trending-header">
-                <div className="sv-trending-title">
-                  <Flame size={13} style={{ color: '#f59e0b' }} />
-                  Trending
-                </div>
-                <button className="sv-trending-more">
-                  See all <ChevronRight size={12} />
-                </button>
-              </div>
-              <div className="sv-trending-scroll">
-                {trending.map((t, i) => (
-                  <div key={i} className="sv-trending-chip">
-                    <span className="sv-chip-emoji">{t.emoji}</span>
-                    <div>
-                      <div className="sv-chip-title">{t.title}</div>
-                      <div className="sv-chip-type">{t.type}</div>
+            {/* Feature Cards */}
+            <div className="sv-features-area">
+              <div className="sv-feature-grid">
+                {features.map((f) => (
+                  <div
+                    key={f.label}
+                    className="sv-feature-card"
+                    onClick={() => navigate(f.route)}
+                    style={{ '--feature-accent': f.accent } as React.CSSProperties}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = f.accent;
+                      (e.currentTarget as HTMLElement).style.background = f.accentLight;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = '';
+                      (e.currentTarget as HTMLElement).style.background = '';
+                    }}
+                  >
+                    <div
+                      className="sv-feature-icon-wrap"
+                      style={{ background: f.accentLight, color: f.accent }}
+                    >
+                      {f.icon}
+                    </div>
+
+                    <div className="sv-feature-content">
+                      <div className="sv-feature-label">
+                        {f.label}
+                        <span className="sv-feature-badge" style={{ background: f.badgeColor }}>
+                          {f.badge}
+                        </span>
+                      </div>
+
+                      <p className="sv-feature-desc">{f.description}</p>
+
+                      <button
+                        className="sv-feature-cta"
+                        style={{ color: f.accent }}
+                      >
+                        Open {f.label}
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </section>
-
-            {/* Posts */}
-            <div className="sv-feed">
-              {mockPosts.map((post) => (
-                <article key={post.id} className="sv-post">
-                  <div className="sv-post-inner">
-                    {/* User Row */}
-                    <div className="sv-post-header">
-                      <div className="sv-post-user">
-                        <div className="sv-avatar" style={{ background: post.avatarColor, width: 38, height: 38, fontSize: 12 }}>
-                          {post.initials}
-                        </div>
-                        <div>
-                          <div className="sv-user-name">{post.user}</div>
-                          <div className="sv-user-meta">
-                            <span className="sv-user-handle">{post.handle}</span>
-                            <span className="sv-user-dot" />
-                            <span className="sv-user-time">{post.timestamp}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <button className="sv-more-btn"><MoreHorizontal size={16} /></button>
-                    </div>
-
-                    {/* Cover */}
-                    <div className="sv-post-cover" style={{ background: post.coverBg }}>
-                      <div className="sv-cover-noise" />
-                      <span className="sv-cover-emoji">{post.cover}</span>
-                      <span className="sv-cover-tag">{post.tag}</span>
-                    </div>
-
-                    {/* Title + Stars */}
-                    <div className="sv-post-meta-row">
-                      <div className="sv-post-title-group">
-                        <div className="sv-post-title">{post.title}</div>
-                        <div className="sv-post-subtitle">
-                          {getTypeIcon(post.type)}
-                          {post.subtitle}
-                        </div>
-                      </div>
-                      <div className="sv-stars">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={13}
-                            className={i < post.rating ? "sv-star" : "sv-star-empty"}
-                            fill={i < post.rating ? "#f59e0b" : "none"}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Review */}
-                    <p className="sv-review">{post.review}</p>
-
-                    {/* Actions */}
-                    <div className="sv-post-actions">
-                      <button
-                        className={`sv-action-btn ${likedPosts.has(post.id) ? 'liked' : ''}`}
-                        onClick={() => toggleLike(post.id)}
-                      >
-                        <Heart
-                          size={15}
-                          fill={likedPosts.has(post.id) ? "#e11d48" : "none"}
-                          stroke={likedPosts.has(post.id) ? "#e11d48" : "currentColor"}
-                        />
-                        {post.likes + (likedPosts.has(post.id) ? 1 : 0)}
-                      </button>
-                      <button className="sv-action-btn">
-                        <MessageCircle size={15} />
-                        {post.comments}
-                      </button>
-                      <div className="sv-action-spacer" />
-                      <button
-                        className={`sv-action-btn ${savedPosts.has(post.id) ? 'saved' : ''}`}
-                        onClick={() => toggleSave(post.id)}
-                      >
-                        <Bookmark
-                          size={15}
-                          fill={savedPosts.has(post.id) ? "var(--purple)" : "none"}
-                          stroke={savedPosts.has(post.id) ? "var(--purple)" : "currentColor"}
-                        />
-                        {savedPosts.has(post.id) ? "Saved" : "Save"}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
             </div>
+
+            {/* User Posts Section */}
+            {userProfile && userProfile.posts.length > 0 && (
+              <div className="sv-user-posts-area">
+                <div className="sv-posts-intro">
+                  <p className="sv-posts-eyebrow">Recent Posts</p>
+                  <h2 className="sv-posts-heading">
+                    Recent Activity
+                  </h2>
+                  <p className="sv-posts-subheading">
+                    Your latest thoughts and contributions to the StoryVerse community.
+                  </p>
+                </div>
+
+                <div className="sv-posts-feed">
+                  {userProfile.posts.map((post) => (
+                    <article key={post.id} className="sv-user-post">
+                      <div className="sv-user-post-inner">
+                        {/* User Row */}
+                        <div className="sv-user-post-header">
+                          <div className="sv-user-post-user">
+                            <div className="sv-avatar" style={{ background: '#6d28d9', width: 38, height: 38, fontSize: 12 }}>
+                              {userProfile.avatar}
+                            </div>
+                            <div>
+                              <div className="sv-user-name">{userProfile.username}</div>
+                              <div className="sv-user-meta">
+                                <span className="sv-user-handle">@{userProfile.username.toLowerCase()}</span>
+                                <span className="sv-user-dot" />
+                                <span className="sv-user-time">{post.timestamp}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <button className="sv-more-btn"><MoreHorizontal size={16} /></button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="sv-user-post-content">
+                          {post.type === 'text' ? (
+                            <p className="sv-user-post-text">{post.content}</p>
+                          ) : (
+                            <img src={post.content} alt="Post image" className="sv-user-post-image" />
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="sv-user-post-actions">
+                          <button
+                            className={`sv-action-btn ${likedPosts.has(post.id) ? 'liked' : ''}`}
+                            onClick={() => toggleLike(post.id)}
+                          >
+                            <Heart
+                              size={15}
+                              fill={likedPosts.has(post.id) ? "#e11d48" : "none"}
+                              stroke={likedPosts.has(post.id) ? "#e11d48" : "currentColor"}
+                            />
+                            {post.likes + (likedPosts.has(post.id) ? 1 : 0)}
+                          </button>
+                          <button className="sv-action-btn">
+                            <MessageCircle size={15} />
+                            {post.comments}
+                          </button>
+                          <div className="sv-action-spacer" />
+                          <button
+                            className={`sv-action-btn ${savedPosts.has(post.id) ? 'saved' : ''}`}
+                            onClick={() => toggleSave(post.id)}
+                          >
+                            <Bookmark
+                              size={15}
+                              fill={savedPosts.has(post.id) ? "var(--purple)" : "none"}
+                              stroke={savedPosts.has(post.id) ? "var(--purple)" : "currentColor"}
+                            />
+                            {savedPosts.has(post.id) ? "Saved" : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
           </main>
 
           {/* Right Sidebar */}
           <aside className="sv-sidebar-right">
             {/* Profile */}
-            <div className="sv-user-profile">
+            <button className="sv-user-profile" onClick={() => navigate('/profile')}>
               <div className="sv-profile-avatar">ME</div>
               <div>
                 <div className="sv-profile-name">Your Profile</div>
                 <div className="sv-profile-handle">@yourusername</div>
               </div>
               <ArrowUpRight size={14} style={{ marginLeft: 'auto', color: 'var(--ink-muted)' }} />
-            </div>
+            </button>
 
-
-
-            {/* Suggestions */}
-            <div className="sv-divider" style={{ margin: '20px 0 16px' }} />
-            <p className="sv-section-label">People to follow</p>
-            {sidebarSuggestions.map(s => (
-              <div key={s.id} className="sv-suggestion" style={{ marginBottom: 14 }}>
-                <div className="sv-avatar" style={{ background: s.color, width: 34, height: 34, fontSize: 11 }}>{s.initials}</div>
-                <div className="sv-suggestion-info">
-                  <div className="sv-suggestion-name">{s.name}</div>
-                  <div className="sv-suggestion-handle">{s.handle}</div>
-                </div>
-                <button className="sv-add-btn">+Follow</button>
+            {/* Quick Access */}
+            <div className="sv-quick-access">
+              <div className="sv-quick-access-header">
+                <p className="sv-quick-access-title">Quick Access</p>
               </div>
-            ))}
 
-            {/* Event Card */}
-            <div className="sv-divider" style={{ margin: '20px 0 16px' }} />
-            <p className="sv-section-label" style={{ marginBottom: 12 }}>Featured Event</p>
-            <div className="sv-event-card">
-              <div className="sv-event-bg" />
-              <div className="sv-event-bg2" />
-              <div className="sv-event-badge"><Calendar size={10} /> Upcoming</div>
-              <div className="sv-event-title">New Market Night</div>
-              <p className="sv-event-desc">An evening of creativity, books, and storytelling with fellow enthusiasts.</p>
-              <button className="sv-event-btn">
-                <Sparkles size={13} /> Learn More
-              </button>
+              {features.map((f) => (
+                <button
+                  key={f.label}
+                  className="sv-quick-item"
+                  onClick={() => navigate(f.route)}
+                >
+                  <div
+                    className="sv-quick-icon"
+                    style={{ background: f.accentLight, color: f.accent }}
+                  >
+                    {f.icon}
+                  </div>
+                  <span className="sv-quick-label">{f.label}</span>
+                  <ArrowUpRight size={13} className="sv-quick-arrow" />
+                </button>
+              ))}
             </div>
           </aside>
 
         </div>
       </div>
 
-      {/* Show sidebars via JS (they're hidden by default for layout purposes in React) */}
       <style>{`
         @media (min-width: 1024px) {
           #sv-left { display: flex !important; }
