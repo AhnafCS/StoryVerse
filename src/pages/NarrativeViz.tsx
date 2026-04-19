@@ -120,6 +120,10 @@ const Btn = ({ children, onClick, disabled, icon: Icon, variant = 'default', ful
       background: 'rgba(255,60,80,0.12)', color: '#ff5c72',
       border: '1px solid rgba(255,60,80,0.3)'
     },
+    secondary: {
+      background: 'rgba(0,180,255,0.08)', color: '#00b4ff',
+      border: '1px solid rgba(0,180,255,0.25)'
+    },
     default: {
       background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)',
       border: '1px solid rgba(255,255,255,0.1)'
@@ -839,7 +843,7 @@ const NarrativeViz = () => {
                 padding: 16,
                 background: isDark ? 'rgba(0,180,255,0.08)' : 'rgba(0,180,255,0.05)',
                 borderRadius: 12,
-                border: `1px solid ${isDark ? 'rgba(0,180,255,0.2)' : 'rgba(0,180,255,0.15)'}`
+                border: `1px solid ${isDark ? 'rgba(90, 69, 167, 0.2)' : 'rgba(0,180,255,0.15)'}`
               }}>
                 <input
                   type="text"
