@@ -13,7 +13,7 @@ const getModel = () => {
     }
     genAI = new GoogleGenerativeAI(apiKey);
     model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: `Analyze the character description provided. You must return a JSON-only response with this exact structure:
 {
   "mbti": "MBTI type (e.g., INTJ, ENFP)",

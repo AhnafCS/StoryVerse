@@ -742,23 +742,29 @@ const NarrativeViz = () => {
         padding: '0 32px', height: 64,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <BookOpen size={20} color="#00b4ff" />
-          <span style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontSize: 18, fontWeight: 700,
-            color: isDark ? '#fff' : '#000'
-          }}>StoryVerse</span>
-          <span style={{
-            fontFamily: "'DM Mono', monospace", fontSize: 10,
-            color: 'rgba(0,180,255,0.7)', marginLeft: 4,
-            background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,180,255,0.25)',
-            padding: '2px 8px', borderRadius: 6
-          }}>Narrative</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+           <button
+              onClick={() => window.history.back()}
+              style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: 6,
+                 padding: '8px 16px',
+                 borderRadius: 10,
+                 cursor: 'pointer',
+                 background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                 border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                 color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+                 fontSize: 13,
+                 fontFamily: "'DM Mono', monospace",
+                 fontWeight: 500
+              }}
+            >
+               ← Back
+            </button>
+            
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <a href="/psychology" style={navLinkStyle}>Psychology</a>
-          <a href="/feed" style={navLinkStyle}>Feed</a>
           <button onClick={toggleTheme} style={{
             width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
             background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
