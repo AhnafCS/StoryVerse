@@ -609,7 +609,8 @@ const LoadingSkeleton = ({ isDark }) => (
    MAIN PAGE COMPONENT
 ══════════════════════════════════════════════════════════════════════════ */
 const NarrativeViz = () => {
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [characters, setCharacters] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [narrative, setNarrative] = useState(null);
