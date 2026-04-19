@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import api from "../services/api";
+import { toast } from "sonner";
 import {
   Search, Plus, Brain, TrendingUp, MessageCircle,
   Home, Bookmark, Settings, User,
   Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, UserPlus, Heart, MoreHorizontal, LogOut,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Send, Trash2
 } from "lucide-react";
 
 const HomeFeed = () => {
@@ -20,6 +21,10 @@ const HomeFeed = () => {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  
+  // Comments state
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   // Fetch current user profile
   useEffect(() => {
@@ -94,6 +99,70 @@ const HomeFeed = () => {
     });
   };
 
+  // Toggle comments visibility
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
+
+  // Handle comment submission
+  const handleAddComment = async (postId: string) => {
+    const content = commentInputs[postId]?.trim();
+    if (!content) return;
+
+    try {
+      const response = await api.posts.addComment(postId, content);
+      
+      // Update the post's comments in state
+      setAllPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: [...(post.comments || []), response.comment],
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      // Clear the input
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+      toast.success('Comment added!');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      toast.error('Failed to add comment');
+    }
+  };
+
+  // Handle comment deletion
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    try {
+      const response = await api.posts.deleteComment(postId, commentId);
+      
+      setAllPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: (post.comments || []).filter((c: any) => c.id !== commentId),
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      toast.success('Comment deleted');
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  // Navigate to user profile
+  const navigateToProfile = (username: string) => {
+    navigate(`/profile/${username}`);
+  };
+
   const handleFeatureClick = (featureType: string, post: any) => {
     if (!post.featureData) return;
     
@@ -118,7 +187,7 @@ const HomeFeed = () => {
   const handleLogout = () => {
     // Clear authentication data
     localStorage.removeItem('token');
-    localStorage.removeItem('userProfile');
+    localStorage.removeItem('user');
     // Redirect to login page
     navigate('/');
   };
@@ -1301,10 +1370,14 @@ const HomeFeed = () => {
                   {allPosts.map(post => (
                     <div key={post.id} className="sv-feed-post">
                       <div className="sv-feed-post-header">
-                        <div className="sv-feed-post-user">
+                        <div className="sv-feed-post-user" style={{ cursor: 'pointer' }} onClick={() => navigateToProfile(post.author.username)}>
                           <div className="sv-feed-avatar">
                             {post.author.avatar ? (
-                              <img src={post.author.avatar} alt={post.author.name} />
+                              <img 
+                                src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:5000${post.author.avatar}`} 
+                                alt={post.author.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
                             ) : (
                               <span>{post.author.name.charAt(0).toUpperCase()}</span>
                             )}
@@ -1364,13 +1437,23 @@ const HomeFeed = () => {
                           </div>
                         )}
                         
-                        {/* Regular Post Content (if no feature tag or expanded) */}
-                        {!post.featureTag && (
-                          post.type === 'text' ? (
-                            <p className="sv-feed-post-text">{post.content}</p>
-                          ) : (
-                            <img src={post.imageUrl} alt="Post image" className="sv-feed-post-image" />
-                          )
+                        {/* Image Content (shown if post has an image) */}
+                        {post.type === 'image' && post.imageUrl && (
+                          <>
+                            <img 
+                              src={post.imageUrl?.startsWith('http') ? post.imageUrl : `http://localhost:5000${post.imageUrl}`} 
+                              alt="Post image" 
+                              className="sv-feed-post-image" 
+                            />
+                            {post.content && !post.featureTag && (
+                              <p className="sv-feed-post-text" style={{ marginTop: '12px' }}>{post.content}</p>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Text Content (only if no feature tag) */}
+                        {post.type === 'text' && !post.featureTag && (
+                          <p className="sv-feed-post-text">{post.content}</p>
                         )}
                       </div>
 
@@ -1384,17 +1467,130 @@ const HomeFeed = () => {
                             fill={likedPosts.has(post.id) ? "#e11d48" : "none"}
                             stroke={likedPosts.has(post.id) ? "#e11d48" : "currentColor"}
                           />
-                          {post.likes || 0}
+                          {post.likeCount || 0}
                         </button>
-                        <button className="sv-action-btn">
+                        <button 
+                          className={`sv-action-btn ${expandedComments.has(post.id) ? 'active' : ''}`}
+                          onClick={() => toggleComments(post.id)}
+                        >
                           <MessageCircle size={15} />
-                          {post.comments || 0}
+                          {post.commentCount || 0}
                         </button>
                         <div className="sv-action-spacer" />
                         <button className="sv-action-btn">
                           <Bookmark size={15} />
                         </button>
                       </div>
+
+                      {/* Comments Section */}
+                      {expandedComments.has(post.id) && (
+                        <div className="sv-comments-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                          {/* Comment Input */}
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <input
+                              type="text"
+                              placeholder="Write a comment..."
+                              value={commentInputs[post.id] || ''}
+                              onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                              onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                border: '1px solid var(--border)',
+                                background: 'var(--surface)',
+                                color: 'var(--ink)',
+                                fontSize: '14px',
+                                outline: 'none',
+                              }}
+                            />
+                            <button
+                              onClick={() => handleAddComment(post.id)}
+                              style={{
+                                padding: '8px 12px',
+                                background: 'var(--purple)',
+                                border: 'none',
+                                borderRadius: '10px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Send size={16} />
+                            </button>
+                          </div>
+
+                          {/* Comments List */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {(post.comments || []).map((comment: any) => (
+                              <div key={comment.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                <div 
+                                  style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '50%', 
+                                    background: 'var(--purple)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    color: 'white',
+                                    flexShrink: 0,
+                                    overflow: 'hidden',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={() => navigateToProfile(comment.author?.username)}
+                                >
+                                  {comment.author?.avatar ? (
+                                    <img 
+                                      src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:5000${comment.author.avatar}`} 
+                                      alt={comment.author.name}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <span>{comment.author?.name?.charAt(0).toUpperCase() || '?'}</span>
+                                  )}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                    <span 
+                                      style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}
+                                      onClick={() => navigateToProfile(comment.author?.username)}
+                                    >
+                                      {comment.author?.name || 'Unknown'}
+                                    </span>
+                                    <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>
+                                      @{comment.author?.username || 'unknown'}
+                                    </span>
+                                  </div>
+                                  <p style={{ fontSize: '14px', color: 'var(--ink-secondary)', margin: 0 }}>{comment.content}</p>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteComment(post.id, comment.id)}
+                                  style={{
+                                    padding: '4px',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--ink-muted)',
+                                    cursor: 'pointer',
+                                    opacity: 0.6,
+                                  }}
+                                  title="Delete comment"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                            {(post.comments || []).length === 0 && (
+                              <p style={{ fontSize: '13px', color: 'var(--ink-muted)', textAlign: 'center', margin: 0 }}>
+                                No comments yet. Be the first to comment!
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1406,8 +1602,16 @@ const HomeFeed = () => {
           <aside className="sv-sidebar-right">
             {/* Profile */}
             <button className="sv-user-profile" onClick={() => navigate('/profile')}>
-              <div className="sv-profile-avatar">
-                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'ME'}
+              <div className="sv-profile-avatar" style={{ overflow: 'hidden' }}>
+                {currentUser?.avatar ? (
+                  <img 
+                    src={currentUser.avatar.startsWith('http') ? currentUser.avatar : `http://localhost:5000${currentUser.avatar}`}
+                    alt={currentUser.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span>{currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'ME'}</span>
+                )}
               </div>
               <div>
                 <div className="sv-profile-name">{currentUser?.name || 'Your Profile'}</div>
@@ -1455,7 +1659,10 @@ const HomeFeed = () => {
                     >
                       <div className="sv-suggested-avatar">
                         {user.avatar ? (
-                          <img src={user.avatar} alt={user.name} />
+                          <img 
+                            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`} 
+                            alt={user.name} 
+                          />
                         ) : (
                           <span>{user.name.charAt(0).toUpperCase()}</span>
                         )}

@@ -210,31 +210,60 @@ class ApiService {
     }
   };
 
-  // Upload image (if needed in the future)
-  async uploadImage(file: File): Promise<any> {
-    const token = this.getAuthToken();
-    const formData = new FormData();
-    formData.append('image', file);
+  // Upload endpoints
+  upload = {
+    avatar: async (file: File): Promise<any> => {
+      const token = this.getAuthToken();
+      const formData = new FormData();
+      formData.append('image', file);
 
-    try {
-      const response = await fetch(`${this.baseURL}/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      try {
+        const response = await fetch(`${this.baseURL}/upload/avatar`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Avatar upload error:', error);
+        throw error;
       }
+    },
 
-      return await response.json();
-    } catch (error) {
-      console.error('Image upload error:', error);
-      throw error;
+    postImage: async (file: File): Promise<any> => {
+      const token = this.getAuthToken();
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const response = await fetch(`${this.baseURL}/upload/post-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Post image upload error:', error);
+        throw error;
+      }
     }
-  }
+  };
 }
 
 // Create a singleton instance

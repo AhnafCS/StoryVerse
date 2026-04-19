@@ -4,8 +4,10 @@ import { useTheme } from "../hooks/useTheme";
 import api from "../services/api";
 import {
   User, Edit2, Save, X, Plus, Image, MessageCircle, Heart, Bookmark,
-  Settings, ArrowLeft, Sun, Moon, Search, ChevronRight, Brain, GitBranch
+  Settings, ArrowLeft, Sun, Moon, Search, ChevronRight, Brain, GitBranch,
+  Camera, ChevronDown, ChevronUp, Send, Trash2
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserPost {
   id: string;
@@ -47,6 +49,15 @@ const UserProfile = () => {
   const [postType, setPostType] = useState<'text' | 'image'>('text');
   const [postContent, setPostContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageCaption, setImageCaption] = useState("");
+
+  // Avatar upload state
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Comments state
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
 
   // Load user profile from API on mount
   useEffect(() => {
@@ -108,16 +119,17 @@ const UserProfile = () => {
   };
 
   const handleCreatePost = async () => {
-    if (postContent.trim() || selectedImage) {
+    const contentToUse = postType === 'image' ? imageCaption : postContent;
+    if (contentToUse.trim() || selectedImage) {
       try {
-        const trimmedContent = postContent.trim();
+        const trimmedContent = contentToUse.trim();
         
-        // Check for @AI keyword
+        // Check for @AI keyword in content
         const hasAI = trimmedContent.toLowerCase().includes('@ai');
         let featureTag = null;
         let featureData = null;
         
-        if (postType === 'text' && hasAI) {
+        if (hasAI) {
           featureTag = 'ai'; // Special tag for @AI posts
           const lines = trimmedContent.split('\n');
           const nameLine = lines[0].replace(/@ai/gi, '').trim();
@@ -145,7 +157,7 @@ const UserProfile = () => {
         
         const postData = {
           type: postType,
-          content: postType === 'text' ? trimmedContent : '',
+          content: postType === 'text' ? trimmedContent : trimmedContent, // Caption is the content for image posts
           imageUrl: postType === 'image' ? selectedImage : '',
           featureTag,
           featureData
@@ -158,24 +170,154 @@ const UserProfile = () => {
         
         // Reset form
         setPostContent("");
+        setImageCaption("");
         setSelectedImage(null);
         setShowPostModal(false);
         setPostType('text');
       } catch (error) {
         console.error('Failed to create post:', error);
+        toast.error('Failed to create post');
       }
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle avatar upload
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
     }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const response = await api.upload.avatar(file);
+      
+      // Update profile with new avatar URL
+      await api.profile.updateProfile({ avatar: response.avatarUrl });
+      
+      // Update local state
+      setUserProfile(prev => prev ? { ...prev, avatar: response.avatarUrl } : null);
+      
+      toast.success('Profile picture updated successfully!');
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      toast.error(error.message || 'Failed to upload profile picture');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Handle post image upload via API
+  const handlePostImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be less than 10MB');
+      return;
+    }
+
+    try {
+      const response = await api.upload.postImage(file);
+      setSelectedImage(response.imageUrl);
+      toast.success('Image uploaded successfully!');
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+    }
+  };
+
+  // Handle comment submission
+  const handleAddComment = async (postId: string) => {
+    const content = commentInputs[postId]?.trim();
+    if (!content) return;
+
+    try {
+      const response = await api.posts.addComment(postId, content);
+      
+      // Update the post's comments in state
+      setUserPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: [...(post.comments || []), response.comment],
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      // Clear the input
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+      toast.success('Comment added!');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      toast.error('Failed to add comment');
+    }
+  };
+
+  // Handle comment deletion
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    try {
+      const response = await api.posts.deleteComment(postId, commentId);
+      
+      setUserPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: (post.comments || []).filter((c: any) => c.id !== commentId),
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      toast.success('Comment deleted');
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  // Toggle comments visibility
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle post content expansion
+  const toggleExpand = (postId: string) => {
+    setExpandedPosts(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
   };
 
   const handleLikePost = (postId: string) => {
@@ -970,6 +1112,22 @@ const UserProfile = () => {
         .up-modal-btn.secondary:hover {
           background: var(--border);
         }
+
+        .up-avatar-container:hover .up-avatar-overlay {
+          transform: scale(1.1);
+        }
+
+        .up-avatar-container:hover .up-avatar {
+          opacity: 0.8;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .up-action-btn.active {
+          color: var(--purple);
+        }
       `}</style>
 
       <div className="up-root">
@@ -1001,7 +1159,52 @@ const UserProfile = () => {
           {/* Profile Section */}
           <section className="up-profile-section">
             <div className="up-profile-header">
-              <div className="up-avatar">{userProfile.avatar}</div>
+              <div 
+                className="up-avatar-container" 
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+              >
+                <div className="up-avatar">
+                  {userProfile.avatar ? (
+                    <img 
+                      src={userProfile.avatar.startsWith('http') ? userProfile.avatar : `http://localhost:5000${userProfile.avatar}`} 
+                      alt={userProfile.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  ) : (
+                    <span>{userProfile.name ? userProfile.name.charAt(0).toUpperCase() : userProfile.username.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div 
+                  className="up-avatar-overlay"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: '32px',
+                    height: '32px',
+                    background: 'var(--purple)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '3px solid var(--white)',
+                  }}
+                >
+                  {isUploadingAvatar ? (
+                    <div className="up-spinner-small" style={{ width: '16px', height: '16px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Camera size={16} color="white" />
+                  )}
+                </div>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleAvatarUpload}
+                />
+              </div>
               <div className="up-profile-info">
                 {/* Name Row - Display Name (non-unique) */}
                 <div className="up-name-row">
@@ -1145,10 +1348,20 @@ const UserProfile = () => {
                 <div key={post.id} className="up-post">
                   <div className="up-post-header">
                     <div className="up-post-user">
-                      <div className="up-post-avatar">{userProfile.avatar}</div>
+                      <div className="up-post-avatar">
+                        {post.author?.avatar ? (
+                          <img 
+                            src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:5000${post.author.avatar}`} 
+                            alt={post.author.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                        ) : (
+                          <span>{post.author?.name ? post.author.name.charAt(0).toUpperCase() : '?'}</span>
+                        )}
+                      </div>
                       <div className="up-post-user-info">
-                        <div className="up-post-username">{userProfile.name}</div>
-                        <div className="up-post-time">@{userProfile.username}</div>
+                        <div className="up-post-username">{post.author?.name || 'Unknown'}</div>
+                        <div className="up-post-time">@{post.author?.username || 'unknown'}</div>
                       </div>
                     </div>
                   </div>
@@ -1193,18 +1406,55 @@ const UserProfile = () => {
                       <div className="up-feature-data">
                         <div className="up-feature-name">{post.featureData.name || 'Untitled'}</div>
                         <div className="up-feature-summary">
-                          {post.featureData.fullContent || post.featureData.summary || ''}
+                          {expandedPosts.has(post.id) 
+                            ? (post.featureData.fullContent || post.featureData.summary || '')
+                            : (post.featureData.summary || post.featureData.fullContent?.substring(0, 100) + '...' || '')}
                         </div>
+                        {(post.featureData.fullContent && post.featureData.fullContent.length > 100) && (
+                          <button 
+                            className="up-expand-btn"
+                            onClick={() => toggleExpand(post.id)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '8px',
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              color: 'var(--purple)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {expandedPosts.has(post.id) ? (
+                              <><ChevronUp size={14} /> Show less</>
+                            ) : (
+                              <><ChevronDown size={14} /> Show more</>
+                            )}
+                          </button>
+                        )}
                       </div>
                     )}
                     
-                    {/* Regular Post Content (if no feature tag) */}
-                    {!post.featureTag && (
-                      post.type === 'text' ? (
-                        <p className="up-post-text">{post.content}</p>
-                      ) : (
-                        <img src={post.imageUrl} alt="Post image" className="up-post-image" />
-                      )
+                    {/* Image Content (shown if post has an image) */}
+                    {post.type === 'image' && post.imageUrl && (
+                      <>
+                        <img 
+                          src={post.imageUrl?.startsWith('http') ? post.imageUrl : `http://localhost:5000${post.imageUrl}`} 
+                          alt="Post image" 
+                          className="up-post-image" 
+                        />
+                        {post.content && !post.featureTag && (
+                          <p className="up-post-text" style={{ marginTop: '12px' }}>{post.content}</p>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Text Content (only if no feature tag - feature content is shown above) */}
+                    {post.type === 'text' && !post.featureTag && (
+                      <p className="up-post-text">{post.content}</p>
                     )}
                   </div>
                   
@@ -1218,17 +1468,123 @@ const UserProfile = () => {
                         fill={post.liked ? "#e11d48" : "none"}
                         stroke={post.liked ? "#e11d48" : "currentColor"}
                       />
-                      {post.likes || 0}
+                      {post.likeCount || 0}
                     </button>
-                    <button className="up-action-btn">
+                    <button 
+                      className={`up-action-btn ${expandedComments.has(post.id) ? 'active' : ''}`}
+                      onClick={() => toggleComments(post.id)}
+                    >
                       <MessageCircle size={14} />
-                      {post.comments || 0}
+                      {post.commentCount || 0}
                     </button>
                     <div className="up-action-spacer" />
                     <button className="up-action-btn">
                       <Bookmark size={14} />
                     </button>
                   </div>
+
+                  {/* Comments Section */}
+                  {expandedComments.has(post.id) && (
+                    <div className="up-comments-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      {/* Comment Input */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                        <input
+                          type="text"
+                          placeholder="Write a comment..."
+                          value={commentInputs[post.id] || ''}
+                          onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface)',
+                            color: 'var(--ink)',
+                            fontSize: '14px',
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={() => handleAddComment(post.id)}
+                          style={{
+                            padding: '8px 12px',
+                            background: 'var(--purple)',
+                            border: 'none',
+                            borderRadius: 'var(--radius-sm)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Send size={16} />
+                        </button>
+                      </div>
+
+                      {/* Comments List */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {(post.comments || []).map((comment: any) => (
+                          <div key={comment.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '50%', 
+                              background: 'var(--purple)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              color: 'white',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}>
+                              {comment.author?.avatar ? (
+                                <img 
+                                  src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:5000${comment.author.avatar}`} 
+                                  alt={comment.author.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span>{comment.author?.name?.charAt(0).toUpperCase() || '?'}</span>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                                  {comment.author?.name || 'Unknown'}
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>
+                                  @{comment.author?.username || 'unknown'}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '14px', color: 'var(--ink-secondary)', margin: 0 }}>{comment.content}</p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(post.id, comment.id)}
+                              style={{
+                                padding: '4px',
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--ink-muted)',
+                                cursor: 'pointer',
+                                opacity: 0.6,
+                              }}
+                              title="Delete comment"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {(post.comments || []).length === 0 && (
+                          <p style={{ fontSize: '13px', color: 'var(--ink-muted)', textAlign: 'center', margin: 0 }}>
+                            No comments yet. Be the first to comment!
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -1309,11 +1665,52 @@ const UserProfile = () => {
                       type="file"
                       accept="image/*"
                       style={{ display: 'none' }}
-                      onChange={handleImageUpload}
+                      onChange={handlePostImageUpload}
                     />
                   </div>
                   {selectedImage && (
-                    <img src={selectedImage} alt="Preview" className="up-image-preview" />
+                    <>
+                      <img 
+                        src={selectedImage?.startsWith('http') ? selectedImage : `http://localhost:5000${selectedImage}`} 
+                        alt="Preview" 
+                        className="up-image-preview" 
+                      />
+                      {/* Caption input with AI support */}
+                      <textarea
+                        className="up-textarea"
+                        placeholder="Add a caption...&#10;&#10;Tip: Use @AI to create an entry for Psychology and Narrative (line 1 = name, rest = description)"
+                        value={imageCaption}
+                        onChange={(e) => setImageCaption(e.target.value)}
+                        style={{ 
+                          marginTop: '16px',
+                          minHeight: '80px',
+                          borderColor: imageCaption.toLowerCase().includes('@ai') ? '#7c3aed' : undefined
+                        }}
+                      />
+                      {imageCaption.toLowerCase().includes('@ai') && (
+                        <div style={{ 
+                          marginTop: '8px', 
+                          padding: '6px 12px', 
+                          background: 'rgba(124, 58, 237, 0.1)', 
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: '#7c3aed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span style={{ 
+                            background: '#7c3aed', 
+                            color: 'white', 
+                            padding: '2px 8px', 
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            fontSize: '11px'
+                          }}>@AI</span>
+                          <span>This caption will create entries in Psychology & Narrative</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}

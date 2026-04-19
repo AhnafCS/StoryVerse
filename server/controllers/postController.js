@@ -344,6 +344,8 @@ export const getUserPosts = async (req, res) => {
         likeCount: post.likeCount,
         commentCount: post.commentCount,
         tags: post.tags,
+        featureTag: post.featureTag,
+        featureData: post.featureData,
         isPublic: post.isPublic,
         isLiked: userId ? post.isLikedBy(userId) : false,
         createdAt: post.createdAt,

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import api from "../services/api";
+import { toast } from "sonner";
 import {
   User, ArrowLeft, Sun, Moon, Search, Heart, MessageCircle, Bookmark,
-  Calendar, Users, UserPlus, Check
+  Calendar, Users, UserPlus, Check, Brain, GitBranch, ChevronDown, ChevronUp,
+  Send, Trash2
 } from "lucide-react";
 
 interface UserProfile {
@@ -43,6 +45,12 @@ interface UserPost {
   isLiked: boolean;
   createdAt: string;
   updatedAt: string;
+  featureTag?: string | null;
+  featureData?: {
+    name?: string;
+    summary?: string;
+    fullContent?: string;
+  } | null;
 }
 
 const ViewProfile = () => {
@@ -57,6 +65,11 @@ const ViewProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  
+  // Comments state
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -142,6 +155,95 @@ const ViewProfile = () => {
       day: 'numeric', 
       year: 'numeric' 
     });
+  };
+
+  // Toggle comments visibility
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
+
+  // Toggle post content expansion
+  const toggleExpand = (postId: string) => {
+    setExpandedPosts(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
+
+  // Handle comment submission
+  const handleAddComment = async (postId: string) => {
+    const content = commentInputs[postId]?.trim();
+    if (!content) return;
+
+    try {
+      const response = await api.posts.addComment(postId, content);
+      
+      // Update the post's comments in state
+      setUserPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: [...(post.comments || []), response.comment],
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      // Clear the input
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+      toast.success('Comment added!');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      toast.error('Failed to add comment');
+    }
+  };
+
+  // Handle comment deletion
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    try {
+      const response = await api.posts.deleteComment(postId, commentId);
+      
+      setUserPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              comments: (post.comments || []).filter((c: any) => c.id !== commentId),
+              commentCount: response.commentCount
+            }
+          : post
+      ));
+      
+      toast.success('Comment deleted');
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  // Handle feature click
+  const handleFeatureClick = (featureType: string, post: any) => {
+    if (!post.featureData) return;
+    
+    if (featureType === 'psychology') {
+      localStorage.setItem('psychology_pending', JSON.stringify({
+        name: post.featureData.name,
+        description: post.featureData.fullContent,
+        timestamp: Date.now()
+      }));
+      navigate('/psychology');
+    } else if (featureType === 'narrative') {
+      localStorage.setItem('narrative_pending', JSON.stringify({
+        title: post.featureData.name,
+        content: post.featureData.fullContent,
+        timestamp: Date.now()
+      }));
+      navigate('/narrative');
+    }
   };
 
   if (loading) {
@@ -612,7 +714,10 @@ const ViewProfile = () => {
             <div className="vp-profile-header">
               <div className="vp-avatar">
                 {userProfile.avatar ? (
-                  <img src={userProfile.avatar} alt={userProfile.name} />
+                  <img 
+                    src={userProfile.avatar.startsWith('http') ? userProfile.avatar : `http://localhost:5000${userProfile.avatar}`} 
+                    alt={userProfile.name} 
+                  />
                 ) : (
                   <span>{userProfile.name.charAt(0).toUpperCase()}</span>
                 )}
@@ -687,10 +792,13 @@ const ViewProfile = () => {
                   <div className="vp-post-header">
                     <div className="vp-post-user">
                       <div className="vp-post-avatar">
-                        {post.author.avatar ? (
-                          <img src={post.author.avatar} alt={post.author.name} />
+                        {post.author?.avatar ? (
+                          <img 
+                            src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:5000${post.author.avatar}`} 
+                            alt={post.author.name} 
+                          />
                         ) : (
-                          <span>{post.author.name.charAt(0).toUpperCase()}</span>
+                          <span>{post.author?.name?.charAt(0).toUpperCase() || '?'}</span>
                         )}
                       </div>
                       <div className="vp-post-user-info">
@@ -701,10 +809,107 @@ const ViewProfile = () => {
                   </div>
                   
                   <div className="vp-post-content">
-                    {post.type === 'text' ? (
+                    {/* Feature Tag Badges - Show both Psychology and Narrative for @AI posts */}
+                    {post.featureTag === 'ai' && (
+                      <div className="vp-feature-badge-row" style={{ marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          className="vp-feature-badge psychology"
+                          onClick={() => handleFeatureClick('psychology', post)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: 'rgba(124, 58, 237, 0.15)',
+                            color: '#7c3aed',
+                          }}
+                        >
+                          <Brain size={14} />
+                          <span>PSYCHOLOGY</span>
+                        </button>
+                        <button
+                          className="vp-feature-badge narrative"
+                          onClick={() => handleFeatureClick('narrative', post)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: 'rgba(0, 144, 204, 0.15)',
+                            color: '#0090cc',
+                          }}
+                        >
+                          <GitBranch size={14} />
+                          <span>NARRATIVE</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Feature Data Summary */}
+                    {post.featureData && (
+                      <div className="vp-feature-data" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: '12px', padding: '16px', marginBottom: '12px' }}>
+                        <div className="vp-feature-name" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)', marginBottom: '8px' }}>{post.featureData.name || 'Untitled'}</div>
+                        <div className="vp-feature-summary" style={{ fontSize: '14px', color: 'var(--ink-secondary)', lineHeight: 1.5 }}>
+                          {expandedPosts.has(post.id) 
+                            ? (post.featureData.fullContent || post.featureData.summary || '')
+                            : (post.featureData.summary || post.featureData.fullContent?.substring(0, 100) + '...' || '')}
+                        </div>
+                        {(post.featureData.fullContent && post.featureData.fullContent.length > 100) && (
+                          <button 
+                            onClick={() => toggleExpand(post.id)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '8px',
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              color: 'var(--purple)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {expandedPosts.has(post.id) ? (
+                              <><ChevronUp size={14} /> Show less</>
+                            ) : (
+                              <><ChevronDown size={14} /> Show more</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Image Content (shown if post has an image) */}
+                    {post.type === 'image' && post.imageUrl && (
+                      <>
+                        <img 
+                          src={post.imageUrl?.startsWith('http') ? post.imageUrl : `http://localhost:5000${post.imageUrl}`} 
+                          alt="Post image" 
+                          className="vp-post-image" 
+                        />
+                        {post.content && !post.featureTag && (
+                          <p className="vp-post-text" style={{ marginTop: '12px' }}>{post.content}</p>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Text Content (only if no feature tag) */}
+                    {post.type === 'text' && !post.featureTag && (
                       <p className="vp-post-text">{post.content}</p>
-                    ) : (
-                      <img src={post.imageUrl} alt="Post image" className="vp-post-image" />
                     )}
                   </div>
                   
@@ -720,7 +925,10 @@ const ViewProfile = () => {
                       />
                       {post.likeCount}
                     </button>
-                    <button className="vp-action-btn">
+                    <button 
+                      className={`vp-action-btn ${expandedComments.has(post.id) ? 'active' : ''}`}
+                      onClick={() => toggleComments(post.id)}
+                    >
                       <MessageCircle size={14} />
                       {post.commentCount}
                     </button>
@@ -729,6 +937,109 @@ const ViewProfile = () => {
                       <Bookmark size={14} />
                     </button>
                   </div>
+
+                  {/* Comments Section */}
+                  {expandedComments.has(post.id) && (
+                    <div className="vp-comments-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      {/* Comment Input */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                        <input
+                          type="text"
+                          placeholder="Write a comment..."
+                          value={commentInputs[post.id] || ''}
+                          onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface)',
+                            color: 'var(--ink)',
+                            fontSize: '14px',
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={() => handleAddComment(post.id)}
+                          style={{
+                            padding: '8px 12px',
+                            background: 'var(--purple)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Send size={16} />
+                        </button>
+                      </div>
+
+                      {/* Comments List */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {(post.comments || []).map((comment: any) => (
+                          <div key={comment.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                            <div style={{ 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '50%', 
+                              background: 'var(--purple)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              color: 'white',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}>
+                              {comment.author?.avatar ? (
+                                <img 
+                                  src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:5000${comment.author.avatar}`} 
+                                  alt={comment.author.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span>{comment.author?.name?.charAt(0).toUpperCase() || '?'}</span>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                                  {comment.author?.name || 'Unknown'}
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>
+                                  @{comment.author?.username || 'unknown'}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '14px', color: 'var(--ink-secondary)', margin: 0 }}>{comment.content}</p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(post.id, comment.id)}
+                              style={{
+                                padding: '4px',
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--ink-muted)',
+                                cursor: 'pointer',
+                                opacity: 0.6,
+                              }}
+                              title="Delete comment"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {(post.comments || []).length === 0 && (
+                          <p style={{ fontSize: '13px', color: 'var(--ink-muted)', textAlign: 'center', margin: 0 }}>
+                            No comments yet. Be the first to comment!
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}

@@ -54,6 +54,8 @@ export const getProfile = async (req, res) => {
         likeCount: post.likeCount,
         commentCount: post.commentCount,
         tags: post.tags,
+        featureTag: post.featureTag,
+        featureData: post.featureData,
         isPublic: post.isPublic,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt
