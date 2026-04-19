@@ -76,7 +76,7 @@ const Index = () => {
         style={{ transitionDuration: '500ms', transitionDelay: showAuth ? '1500ms' : '0ms' }}
       >
         <p className="text-xs text-muted-foreground/50 font-body tracking-widest">
-          © 2026 StoryVerse · All rights reserved
+          © 2026 StoryVerse · Developed by Group7
         </p>
       </div>
     </div>

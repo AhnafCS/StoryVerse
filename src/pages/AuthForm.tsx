@@ -140,13 +140,13 @@ const AuthForm = () => {
             </div>
           </div>
 
-          {!isSignUp && (
+          {/* {!isSignUp && (
             <div className="flex justify-end">
               <button className="text-xs text-lavender hover:text-cream transition-colors font-body">
                 Forgot password?
               </button>
             </div>
-          )}
+          )} */}
 
           <button
             type="submit"
