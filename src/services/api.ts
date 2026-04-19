@@ -264,6 +264,70 @@ class ApiService {
       }
     }
   };
+
+  // ── Media (Requirement 1, 2, 4) ──────────────────────────────────────────
+  media = {
+    // Requirement 4: Search & Filter by title, genre, or creator
+    getAll: async (filters: {
+      title?: string;
+      genre?: string;
+      creator?: string;
+      tag?: string;
+    } = {}) => {
+      const params = new URLSearchParams();
+      if (filters.title)   params.append('title',   filters.title);
+      if (filters.genre)   params.append('genre',   filters.genre);
+      if (filters.creator) params.append('creator', filters.creator);
+      if (filters.tag)     params.append('tag',     filters.tag);
+      const qs = params.toString();
+      return await this.authenticatedRequest(`/media${qs ? `?${qs}` : ''}`);
+    },
+
+    getById: async (id: string) => {
+      return await this.authenticatedRequest(`/media/${id}`);
+    },
+
+    // Requirement 1: Add Media with title, genre, creator, release year, summary
+    // Requirement 2: Genre & Theme Tagging (genres + tags arrays)
+    add: async (mediaData: {
+      title: string;
+      type: string;
+      creator?: string;
+      releaseYear?: number;
+      summary?: string;
+      genres?: string[];
+      tags?: string[];
+    }) => {
+      return await this.authenticatedRequest('/media/add', {
+        method: 'POST',
+        body: JSON.stringify(mediaData),
+      });
+    },
+  };
+
+  // ── Favorites (Requirement 5) ─────────────────────────────────────────────
+  favorites = {
+    // Get all bookmarked media for a user
+    get: async (userId: string) => {
+      return await this.authenticatedRequest(`/favorites/${userId}`);
+    },
+
+    // Bookmark a media entry
+    add: async (userId: string, mediaId: string) => {
+      return await this.authenticatedRequest(`/favorites/${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({ mediaId }),
+      });
+    },
+
+    // Remove bookmark
+    remove: async (userId: string, mediaId: string) => {
+      return await this.authenticatedRequest(`/favorites/${userId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ mediaId }),
+      });
+    },
+  };
 }
 
 // Create a singleton instance
