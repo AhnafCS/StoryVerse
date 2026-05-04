@@ -7,7 +7,7 @@ import {
   Search, Plus, Brain, TrendingUp, MessageCircle,
   Home, Bookmark, Settings, User,
   Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, UserPlus, Heart, MoreHorizontal, LogOut,
-  ChevronDown, ChevronUp, Send, Trash2
+  ChevronDown, ChevronUp, Send, Trash2, X, Image, Camera
 } from "lucide-react";
 
 const HomeFeed = () => {
@@ -25,6 +25,13 @@ const HomeFeed = () => {
   // Comments state
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+
+  // Post creation state
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [postType, setPostType] = useState<'text' | 'image'>('text');
+  const [postContent, setPostContent] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageCaption, setImageCaption] = useState("");
 
   // Fetch current user profile
   useEffect(() => {
@@ -190,6 +197,87 @@ const HomeFeed = () => {
     localStorage.removeItem('user');
     // Redirect to login page
     navigate('/');
+  };
+
+  // Handle post creation
+  const handleCreatePost = async () => {
+    const contentToUse = postType === 'image' ? imageCaption : postContent;
+    if (!contentToUse.trim() && !selectedImage) {
+      toast.error('Please add content or an image');
+      return;
+    }
+
+    try {
+      const trimmedContent = contentToUse.trim();
+      
+      // Check for @AI keyword in content
+      const hasAI = trimmedContent.toLowerCase().includes('@ai');
+      let featureTag = null;
+      let featureData = null;
+      
+      if (hasAI) {
+        featureTag = 'ai'; // Special tag for @AI posts
+        const lines = trimmedContent.split('\n');
+        const nameLine = lines[0].replace(/@ai/gi, '').trim();
+        const descriptionLines = lines.slice(1).join('\n').trim();
+        const fullContent = descriptionLines || 'No description provided';
+        
+        featureData = {
+          name: nameLine || 'Untitled Entry',
+          summary: fullContent.substring(0, 100) + (fullContent.length > 100 ? '...' : ''),
+          fullContent: fullContent
+        };
+        
+        // Store for both Psychology and Narrative pages
+        localStorage.setItem('psychology_pending', JSON.stringify({
+          name: featureData.name,
+          description: fullContent,
+          timestamp: Date.now()
+        }));
+        localStorage.setItem('narrative_pending', JSON.stringify({
+          title: featureData.name,
+          content: fullContent,
+          timestamp: Date.now()
+        }));
+      }
+
+      const postData: any = {
+        type: postType,
+        content: postType === 'text' ? trimmedContent : trimmedContent, // Caption is the content for image posts
+        imageUrl: postType === 'image' ? selectedImage : '',
+        featureTag,
+        featureData
+      };
+
+      const response = await api.posts.createPost(postData);
+      
+      // Add new post to the beginning of the feed
+      setAllPosts(prev => [response.post, ...prev]);
+      
+      // Reset form
+      setPostContent("");
+      setImageCaption("");
+      setSelectedImage(null);
+      setShowPostModal(false);
+      setPostType('text');
+      
+      toast.success('Post created successfully!');
+    } catch (error) {
+      console.error('Failed to create post:', error);
+      toast.error('Failed to create post');
+    }
+  };
+
+  // Handle image selection
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const features = [
@@ -1218,8 +1306,236 @@ const HomeFeed = () => {
         .sv-feature-card:nth-child(3) { animation-delay: 0.15s; }
         .sv-feature-card:nth-child(4) { animation-delay: 0.20s; }
 
+        /* Post Creation Modal Styles */
+        .sv-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(4px);
+        }
+
+        .sv-modal {
+          background: var(--white);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          width: 90%;
+          max-width: 500px;
+          max-height: 80vh;
+          overflow-y: auto;
+          box-shadow: var(--shadow-md);
+        }
+
+        .sv-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .sv-modal-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--ink);
+          margin: 0;
+        }
+
+        .sv-close-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--ink-secondary);
+          transition: all 0.15s;
+        }
+
+        .sv-close-btn:hover {
+          background: var(--surface);
+          color: var(--ink);
+        }
+
+        .sv-post-type-tabs {
+          display: flex;
+          padding: 0 24px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .sv-type-tab {
+          flex: 1;
+          padding: 12px 0;
+          background: none;
+          border: none;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--ink-secondary);
+          cursor: pointer;
+          transition: all 0.15s;
+          border-bottom: 2px solid transparent;
+        }
+
+        .sv-type-tab.active {
+          color: var(--purple);
+          border-bottom-color: var(--purple);
+        }
+
+        .sv-type-tab:hover {
+          color: var(--ink);
+        }
+
+        .sv-modal-content {
+          padding: 24px;
+        }
+
+        .sv-text-input {
+          width: 100%;
+          min-height: 120px;
+          padding: 12px 16px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          font-family: var(--font-sans);
+          font-size: 14px;
+          color: var(--ink);
+          background: var(--white);
+          resize: vertical;
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .sv-text-input:focus {
+          border-color: var(--purple-mid);
+          box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+        }
+
+        .sv-text-input::placeholder {
+          color: var(--ink-muted);
+        }
+
+        .sv-image-upload-area {
+          border: 2px dashed var(--border);
+          border-radius: var(--radius-md);
+          padding: 40px 20px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.15s;
+          background: var(--surface);
+        }
+
+        .sv-image-upload-area:hover {
+          border-color: var(--purple-mid);
+          background: var(--purple-light);
+        }
+
+        .sv-image-preview {
+          margin-top: 16px;
+          border-radius: var(--radius-md);
+          overflow: hidden;
+        }
+
+        .sv-image-preview img {
+          width: 100%;
+          height: auto;
+          object-fit: cover;
+        }
+
+        .sv-image-caption {
+          width: 100%;
+          min-height: 80px;
+          margin-top: 16px;
+          padding: 12px 16px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          font-family: var(--font-sans);
+          font-size: 14px;
+          color: var(--ink);
+          background: var(--white);
+          resize: vertical;
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .sv-image-caption:focus {
+          border-color: var(--purple-mid);
+          box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+        }
+
+        .sv-image-caption::placeholder {
+          color: var(--ink-muted);
+        }
+
+        .sv-modal-actions {
+          display: flex;
+          gap: 12px;
+          padding: 20px 24px;
+          border-top: 1px solid var(--border);
+        }
+
+        .sv-modal-btn {
+          flex: 1;
+          padding: 10px 20px;
+          border-radius: var(--radius-sm);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+          border: none;
+        }
+
+        .sv-modal-btn.primary {
+          background: var(--purple);
+          color: white;
+        }
+
+        .sv-modal-btn.primary:hover {
+          background: var(--purple-mid);
+        }
+
+        .sv-modal-btn.secondary {
+          background: var(--surface);
+          color: var(--ink-secondary);
+          border: 1px solid var(--border);
+        }
+
+        .sv-modal-btn.secondary:hover {
+          background: var(--border);
+          color: var(--ink);
+        }
+
+        .sv-upload-icon {
+          width: 48px;
+          height: 48px;
+          margin: 0 auto 16px;
+          color: var(--ink-muted);
+        }
+
+        .sv-upload-text {
+          font-size: 14px;
+          color: var(--ink-secondary);
+          margin-bottom: 8px;
+        }
+
+        .sv-upload-hint {
+          font-size: 12px;
+          color: var(--ink-muted);
+        }
+
         @media (max-width: 900px) {
           .sv-feature-grid { grid-template-columns: 1fr; }
+          .sv-modal {
+            width: 95%;
+            margin: 20px;
+          }
         }
       `}</style>
 
@@ -1298,7 +1614,7 @@ const HomeFeed = () => {
                     <Search size={13} />
                     <input className="sv-search" type="text" placeholder="Search anything..." />
                   </div>
-                  <button className="sv-plus-btn"><Plus size={16} /></button>
+                  <button className="sv-plus-btn" onClick={() => setShowPostModal(true)}><Plus size={16} /></button>
                 </div>
               </div>
             </header>
@@ -1700,6 +2016,109 @@ const HomeFeed = () => {
 
         </div>
       </div>
+
+      {/* Post Creation Modal */}
+      {showPostModal && (
+        <div className="sv-modal-overlay" onClick={() => setShowPostModal(false)}>
+          <div className="sv-modal" onClick={e => e.stopPropagation()}>
+            <div className="sv-modal-header">
+              <h3 className="sv-modal-title">Create New Post</h3>
+              <button className="sv-close-btn" onClick={() => setShowPostModal(false)}><X size={15} /></button>
+            </div>
+            <div className="sv-post-type-tabs">
+              <button className={`sv-type-tab ${postType === 'text' ? 'active' : ''}`} onClick={() => setPostType('text')}>Text Post</button>
+              <button className={`sv-type-tab ${postType === 'image' ? 'active' : ''}`} onClick={() => setPostType('image')}>Image Post</button>
+            </div>
+            <div className="sv-modal-content">
+              {postType === 'text' ? (
+                <textarea
+                  className="sv-text-input"
+                  placeholder={"What's on your mind?\n\nTip: Use @AI to create entries for Psychology & Narrative"}
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  style={postContent.toLowerCase().includes('@ai') ? { borderColor: 'var(--purple)' } : {}}
+                />
+              ) : (
+                <div>
+                  {!selectedImage ? (
+                    <div className="sv-image-upload-area" onClick={() => document.getElementById('image-upload')?.click()}>
+                      <Camera className="sv-upload-icon" />
+                      <div className="sv-upload-text">Click to upload an image</div>
+                      <div className="sv-upload-hint">PNG, JPG, GIF up to 10MB</div>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleImageSelect}
+                      />
+                    </div>
+                  ) : (
+                    <div className="sv-image-preview">
+                      <img src={selectedImage} alt="Selected" />
+                      <button
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          background: 'rgba(0,0,0,0.7)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '30px',
+                          height: '30px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onClick={() => setSelectedImage(null)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  <textarea
+                    className="sv-image-caption"
+                    placeholder="Add a caption...\n\nTip: Use @AI to create an entry for Psychology and Narrative (line 1 = name, rest = description)"
+                    value={imageCaption}
+                    onChange={(e) => setImageCaption(e.target.value)}
+                    style={{ borderColor: imageCaption.toLowerCase().includes('@ai') ? 'var(--purple)' : undefined }}
+                  />
+                  {imageCaption.toLowerCase().includes('@ai') && (
+                    <div style={{ 
+                      marginTop: '8px', 
+                      padding: '6px 12px', 
+                      background: 'var(--purple-light)', 
+                      border: '1px solid var(--purple)', 
+                      borderRadius: '8px', 
+                      fontSize: '12px', 
+                      color: 'var(--purple)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span style={{ 
+                        background: 'var(--purple)', 
+                        color: 'white', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        fontSize: '11px'
+                      }}>@AI</span>
+                      <span>This caption will create entries in Psychology & Narrative</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="sv-modal-actions">
+              <button className="sv-modal-btn secondary" onClick={() => setShowPostModal(false)}>Cancel</button>
+              <button className="sv-modal-btn primary" onClick={handleCreatePost}>Post</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (min-width: 1024px) {
