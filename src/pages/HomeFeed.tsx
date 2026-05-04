@@ -5,7 +5,7 @@ import api from "../services/api";
 import { toast } from "sonner";
 import {
   Search, Plus, Brain, TrendingUp, MessageCircle,
-  Home, Bookmark, Settings, User,
+  Home, Settings, User,
   Sun, Moon, GitBranch, ArrowUpRight, ChevronRight, UserPlus, Heart, MoreHorizontal, LogOut,
   ChevronDown, ChevronUp, Send, Trash2, X, Image, Camera
 } from "lucide-react";
@@ -52,7 +52,14 @@ const HomeFeed = () => {
     const fetchAllPosts = async () => {
       try {
         const response = await api.posts.getPosts({ limit: 20 });
-        setAllPosts(response.posts || []);
+        const posts = response.posts || [];
+        setAllPosts(posts);
+        
+        // Initialize liked posts state from backend data
+        const likedPostIds = posts
+          .filter(post => post.isLiked)
+          .map(post => post.id);
+        setLikedPosts(new Set(likedPostIds));
       } catch (error) {
         console.error('Failed to fetch posts:', error);
         setAllPosts([]);
@@ -90,12 +97,33 @@ const HomeFeed = () => {
     }
   };
 
-  const toggleLike = (postId: string) => {
-    setLikedPosts(prev => {
-      const next = new Set(prev);
-      next.has(postId) ? next.delete(postId) : next.add(postId);
-      return next;
-    });
+  const toggleLike = async (postId: string) => {
+    try {
+      // Call backend API to toggle like
+      const response = await api.posts.toggleLike(postId);
+      
+      // Update local state based on response
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        if (response.isLiked) {
+          next.add(postId);
+        } else {
+          next.delete(postId);
+        }
+        return next;
+      });
+      
+      // Update like count in posts array
+      setAllPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { ...post, likeCount: response.likeCount, isLiked: response.isLiked }
+          : post
+      ));
+      
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const toggleExpand = (postId: string) => {
@@ -1793,9 +1821,6 @@ const HomeFeed = () => {
                           {post.commentCount || 0}
                         </button>
                         <div className="sv-action-spacer" />
-                        <button className="sv-action-btn">
-                          <Bookmark size={15} />
-                        </button>
                       </div>
 
                       {/* Comments Section */}
