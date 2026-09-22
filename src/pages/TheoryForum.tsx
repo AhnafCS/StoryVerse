@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
 import { useTheme } from '../hooks/useTheme';
-import { 
+import {
   MessageSquare, Sparkles, Send, BrainCircuit, ShieldAlert,
   ChevronRight, ArrowLeft, Loader2, Info, Search, FileText,
   User, X
@@ -14,7 +14,7 @@ const AmbientBackground = ({ isDark }) => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
     <div style={{
       position: 'absolute', inset: 0,
-      background: isDark 
+      background: isDark
         ? 'radial-gradient(ellipse 80% 60% at 20% 10%, #0d0221 0%, #020008 60%, #000 100%)'
         : 'radial-gradient(ellipse 80% 60% at 20% 10%, #f7f9fc 0%, #edf1f7 60%, #e2e8f0 100%)'
     }} />
@@ -22,7 +22,7 @@ const AmbientBackground = ({ isDark }) => (
     <div style={{
       position: 'absolute', top: '10%', right: '10%',
       width: 500, height: 500,
-      background: isDark 
+      background: isDark
         ? 'radial-gradient(circle, rgba(60,130,255,0.12) 0%, transparent 70%)'
         : 'radial-gradient(circle, rgba(60,130,255,0.08) 0%, transparent 70%)',
       borderRadius: '50%',
@@ -31,7 +31,7 @@ const AmbientBackground = ({ isDark }) => (
     <div style={{
       position: 'absolute', bottom: '0%', left: '0%',
       width: 600, height: 600,
-      background: isDark 
+      background: isDark
         ? 'radial-gradient(circle, rgba(160,50,255,0.1) 0%, transparent 70%)'
         : 'radial-gradient(circle, rgba(160,50,255,0.06) 0%, transparent 70%)',
       borderRadius: '50%',
@@ -49,7 +49,7 @@ const GlassCard = ({ children, className = '', style = {}, isDark, accent = fals
       backdropFilter: 'blur(20px)',
       border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)',
       borderRadius: 24,
-      boxShadow: accent 
+      boxShadow: accent
         ? (isDark ? '0 8px 32px rgba(99,44,255,0.15)' : '0 8px 32px rgba(99,44,255,0.1)')
         : (isDark ? '0 4px 24px rgba(0,0,0,0.2)' : '0 4px 24px rgba(0,0,0,0.04)'),
       overflow: 'hidden',
@@ -105,10 +105,10 @@ const Btn = ({ onClick, children, icon: Icon, disabled, variant = 'primary', isD
 export default function TheoryForum() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const [theories, setTheories] = useState([]);
   const [activeTheory, setActiveTheory] = useState(null);
-  
+
   // Create theory state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -214,11 +214,11 @@ export default function TheoryForum() {
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-      
+
       <AmbientBackground isDark={isDark} />
 
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -250,7 +250,7 @@ export default function TheoryForum() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: activeTheory ? '1fr 1.3fr' : '1fr', gap: 24, alignItems: 'start' }}>
-          
+
           {/* LEFT: Feed or Create Form */}
           <div style={{ display: activeTheory && window.innerWidth < 768 ? 'none' : 'block' }}>
             {showCreate && !activeTheory && (
@@ -293,15 +293,15 @@ export default function TheoryForum() {
                 </div>
               ) : (
                 theories.map(t => (
-                  <GlassCard 
-                    key={t._id} 
+                  <GlassCard
+                    key={t._id}
                     className="fade-in"
-                    style={{ 
+                    style={{
                       padding: 20, cursor: 'pointer',
                       border: activeTheory?._id === t._id ? '1px solid #8b5cf6' : undefined,
                       transform: activeTheory?._id === t._id ? 'scale(1.02)' : 'scale(1)',
                       transition: 'all 0.2s'
-                    }} 
+                    }}
                     isDark={isDark}
                   >
                     <div onClick={() => { setActiveTheory(t); setShowCreate(false); }}>

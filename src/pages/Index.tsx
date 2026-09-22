@@ -29,13 +29,12 @@ const Index = () => {
       <div className="relative z-10 flex items-center justify-center min-h-screen px-6">
         {/* Logo - starts centered, then slides left */}
         <div
-          className={`absolute flex items-center justify-center transition-all duration-1000 ease-out ${
-            showAuth 
-              ? 'scale-200 -translate-x-48' 
-              : logoLoaded 
-                ? 'scale-800 translate-x-0' 
+          className={`absolute flex items-center justify-center transition-all duration-1000 ease-out ${showAuth
+              ? 'scale-200 -translate-x-48'
+              : logoLoaded
+                ? 'scale-800 translate-x-0'
                 : 'scale-0 translate-x-0'
-          } opacity-100`}
+            } opacity-100`}
           style={{ transitionDuration: '1000ms' }}
         >
           <StoryVerseLogo />
@@ -50,17 +49,15 @@ const Index = () => {
 
           {/* Divider */}
           <div
-            className={`hidden lg:block w-px h-80 bg-gradient-to-b from-transparent via-lavender/40 to-transparent origin-top transition-all duration-400 ease-out ${
-              showAuth ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
-            }`}
+            className={`hidden lg:block w-px h-80 bg-gradient-to-b from-transparent via-lavender/40 to-transparent origin-top transition-all duration-400 ease-out ${showAuth ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
+              }`}
             style={{ transitionDuration: '400ms', transitionDelay: showAuth ? '800ms' : '0ms' }}
           />
 
           {/* Auth side */}
           <div
-            className={`flex-1 flex items-center justify-center lg:justify-start w-full transition-all duration-500 ease-out ${
-              showAuth ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
-            }`}
+            className={`flex-1 flex items-center justify-center lg:justify-start w-full transition-all duration-500 ease-out ${showAuth ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
+              }`}
             style={{ transitionDuration: '500ms', transitionDelay: showAuth ? '900ms' : '0ms' }}
           >
             <AuthForm />
@@ -70,9 +67,8 @@ const Index = () => {
 
       {/* Bottom decoration */}
       <div
-        className={`absolute bottom-6 left-0 right-0 text-center transition-opacity duration-500 ${
-          showAuth ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute bottom-6 left-0 right-0 text-center transition-opacity duration-500 ${showAuth ? 'opacity-100' : 'opacity-0'
+          }`}
         style={{ transitionDuration: '500ms', transitionDelay: showAuth ? '1500ms' : '0ms' }}
       >
         <p className="text-xs text-muted-foreground/50 font-body tracking-widest">
