@@ -11,7 +11,7 @@ const postSchema = new mongoose.Schema({
     required: function() {
       return this.type === 'text';
     },
-    maxlength: 2000
+    maxlength: 50000
   },
   type: {
     type: String,
@@ -37,7 +37,7 @@ const postSchema = new mongoose.Schema({
     content: {
       type: String,
       required: true,
-      maxlength: 500
+      maxlength: 10000
     },
     createdAt: {
       type: Date,
@@ -55,9 +55,9 @@ const postSchema = new mongoose.Schema({
     default: null
   },
   featureData: {
-    name: { type: String, maxlength: 100 },
-    summary: { type: String, maxlength: 200 },
-    fullContent: { type: String, maxlength: 2000 }
+    name: { type: String, maxlength: 50000 },
+    summary: { type: String, maxlength: 50000 },
+    fullContent: { type: String, maxlength: 50000 }
   },
   isPublic: {
     type: Boolean,

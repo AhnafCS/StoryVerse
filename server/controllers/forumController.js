@@ -12,7 +12,7 @@ const getModel = () => {
       throw new Error('GEMINI_API_KEY not set');
     }
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
   }
   return model;
 };
@@ -62,7 +62,7 @@ Return ONLY valid JSON, no markdown formatting.`;
 
     const result = await ai.generateContent(prompt);
     const responseText = result.response.text();
-    
+
     let evaluationData;
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -81,7 +81,7 @@ Return ONLY valid JSON, no markdown formatting.`;
     });
 
     await theory.save();
-    
+
     // Populate user info before returning
     await theory.populate('userId', 'username');
 
@@ -118,11 +118,11 @@ export const addComment = async (req, res) => {
     }
 
     theory.comments.push({ userId, content });
-    
+
     // Reset AI summary when new comments are added
     theory.aiSummary = null;
     await theory.save();
-    
+
     await theory.populate('comments.userId', 'username');
 
     res.json({ theory });
@@ -136,7 +136,7 @@ export const getDebateSummary = async (req, res) => {
   try {
     const { id } = req.params;
     const theory = await Theory.findById(id).populate('comments.userId', 'username');
-    
+
     if (!theory) {
       return res.status(404).json({ error: 'Theory not found' });
     }
@@ -144,9 +144,9 @@ export const getDebateSummary = async (req, res) => {
     // Return existing summary if no new comments or already summarized
     // For simplicity, we just generate a new one each time they ask, or cache it.
     if (theory.aiSummary && theory.comments.length > 0) {
-       // but wait, earlier we reset aiSummary to null when comments are added.
-       // So if we have it, it's up to date.
-       return res.json({ summary: theory.aiSummary });
+      // but wait, earlier we reset aiSummary to null when comments are added.
+      // So if we have it, it's up to date.
+      return res.json({ summary: theory.aiSummary });
     }
 
     if (theory.comments.length === 0) {
@@ -154,7 +154,7 @@ export const getDebateSummary = async (req, res) => {
     }
 
     const commentTexts = theory.comments.map(c => `${c.userId.username}: ${c.content}`).join('\n');
-    
+
     const ai = getModel();
     const prompt = `Summarize the following debate/discussion on a fan theory. Provide a completely unbiased overview of the main points discussed. Keep it concise (1-2 paragraphs).
 Theory Title: ${theory.title}

@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import api from "../services/api";
 import { toast } from "sonner";
+import { getImageUrl } from "../lib/utils";
 import {
   User, ArrowLeft, Sun, Moon, Search, Heart, MessageCircle, Bookmark,
   Calendar, Users, UserPlus, Check, Brain, GitBranch, ChevronDown, ChevronUp,
-  Send, Trash2
+  Send, Trash2, MoreHorizontal, Copy
 } from "lucide-react";
 
 interface UserProfile {
@@ -70,6 +71,15 @@ const ViewProfile = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -223,6 +233,39 @@ const ViewProfile = () => {
       console.error('Failed to delete comment:', error);
       toast.error('Failed to delete comment');
     }
+  };
+
+  // Click outside to close post menus
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.vp-post-menu-container')) {
+        setActiveMenuPostId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  // Handle post deletion
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to delete this post? This cannot be undone.")) {
+      return;
+    }
+    try {
+      await api.posts.deletePost(postId);
+      setUserPosts(prev => prev.filter(post => post.id !== postId));
+      toast.success("Post deleted successfully");
+    } catch (error: any) {
+      console.error("Failed to delete post:", error);
+      toast.error(error.message || "Failed to delete post");
+    }
+  };
+
+  // Copy post link
+  const handleCopyPostLink = (postId: string) => {
+    const url = `${window.location.origin}/feed#post-${postId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Post link copied to clipboard");
   };
 
   // Handle feature click
@@ -617,6 +660,77 @@ const ViewProfile = () => {
           color: var(--ink-muted);
         }
 
+        .vp-post-menu-container {
+          position: relative;
+        }
+
+        .vp-more-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 1px solid transparent;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--ink-muted);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .vp-more-btn:hover {
+          background: var(--surface-hover);
+          color: var(--ink);
+          border-color: var(--border);
+        }
+
+        .vp-post-dropdown-menu {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 4px);
+          min-width: 150px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+          padding: 6px;
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .vp-post-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--ink);
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.15s ease;
+        }
+
+        .vp-post-menu-item:hover {
+          background: var(--surface-hover);
+          color: var(--ink);
+        }
+
+        .vp-post-menu-item-delete {
+          color: #ef4444;
+        }
+
+        .vp-post-menu-item-delete:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+        }
+
         .vp-post-content {
           margin-bottom: 16px;
         }
@@ -715,7 +829,7 @@ const ViewProfile = () => {
               <div className="vp-avatar">
                 {userProfile.avatar ? (
                   <img 
-                    src={userProfile.avatar.startsWith('http') ? userProfile.avatar : `http://localhost:5000${userProfile.avatar}`} 
+                    src={getImageUrl(userProfile.avatar)} 
                     alt={userProfile.name} 
                   />
                 ) : (
@@ -794,8 +908,8 @@ const ViewProfile = () => {
                       <div className="vp-post-avatar">
                         {post.author?.avatar ? (
                           <img 
-                            src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:5000${post.author.avatar}`} 
-                            alt={post.author.name} 
+                            src={getImageUrl(post.author?.avatar)} 
+                            alt={post.author?.name} 
                           />
                         ) : (
                           <span>{post.author?.name?.charAt(0).toUpperCase() || '?'}</span>
@@ -806,6 +920,62 @@ const ViewProfile = () => {
                         <div className="vp-post-time">{formatDate(post.createdAt)}</div>
                       </div>
                     </div>
+
+                    {(() => {
+                      const isOwnPost = Boolean(
+                        currentUser && (
+                          post.author?.id === currentUser.id ||
+                          (post.author as any)?._id === currentUser.id ||
+                          post.author?.id === currentUser._id ||
+                          (post.author as any)?._id === currentUser._id ||
+                          (currentUser.username && post.author?.username && post.author.username.toLowerCase() === currentUser.username.toLowerCase())
+                        )
+                      );
+
+                      return (
+                        <div className="vp-post-menu-container">
+                          <button 
+                            className="vp-more-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuPostId(prev => prev === post.id ? null : post.id);
+                            }}
+                            title="Post options"
+                            aria-label="Post options"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+
+                          {activeMenuPostId === post.id && (
+                            <div className="vp-post-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                className="vp-post-menu-item"
+                                onClick={() => {
+                                  setActiveMenuPostId(null);
+                                  handleCopyPostLink(post.id);
+                                }}
+                              >
+                                <Copy size={14} />
+                                <span>Copy Link</span>
+                              </button>
+
+                              {isOwnPost && (
+                                <button 
+                                  className="vp-post-menu-item vp-post-menu-item-delete"
+                                  onClick={() => {
+                                    setActiveMenuPostId(null);
+                                    handleDeletePost(post.id);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                  <span>Delete Post</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   <div className="vp-post-content">
@@ -897,7 +1067,7 @@ const ViewProfile = () => {
                     {post.type === 'image' && post.imageUrl && (
                       <>
                         <img 
-                          src={post.imageUrl?.startsWith('http') ? post.imageUrl : `http://localhost:5000${post.imageUrl}`} 
+                          src={getImageUrl(post.imageUrl)} 
                           alt="Post image" 
                           className="vp-post-image" 
                         />
@@ -997,8 +1167,8 @@ const ViewProfile = () => {
                             }}>
                               {comment.author?.avatar ? (
                                 <img 
-                                  src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:5000${comment.author.avatar}`} 
-                                  alt={comment.author.name}
+                                  src={getImageUrl(comment.author?.avatar)} 
+                                  alt={comment.author?.name} 
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                               ) : (

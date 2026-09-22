@@ -13,7 +13,7 @@ const getModel = () => {
     }
     genAI = new GoogleGenerativeAI(apiKey);
     model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       systemInstruction: `Analyze the character description provided. You must return a JSON-only response with this exact structure:
 {
   "mbti": "MBTI type (e.g., INTJ, ENFP)",
@@ -54,11 +54,11 @@ export const analyzeCharacter = async (req, res) => {
     }
 
     const prompt = `Analyze this character: ${character.name}. Description: ${character.description}`;
-    
+
     const model = getModel();
     const result = await model.generateContent(prompt);
     const response = result.response.text();
-    
+
     let parsedData;
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);

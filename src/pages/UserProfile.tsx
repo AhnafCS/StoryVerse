@@ -5,9 +5,11 @@ import api from "../services/api";
 import {
   User, Edit2, Save, X, Plus, Image, MessageCircle, Heart, Bookmark,
   Settings, ArrowLeft, Sun, Moon, Search, Brain, GitBranch,
-  Film, Book, Tv, Star, Tag, Filter, Camera, ChevronDown, ChevronUp, Send, Trash2
+  Film, Book, Tv, Star, Tag, Filter, Camera, ChevronDown, ChevronUp, Send, Trash2,
+  MoreHorizontal, Copy
 } from "lucide-react";
 import { toast } from "sonner";
+import { getImageUrl } from "../lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface UserPost {
@@ -82,6 +84,7 @@ const UserProfile = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
 
   // ── Media Library state ───────────────────────────────────────────────────
   const [mediaList, setMediaList] = useState<MediaEntry[]>([]);
@@ -433,6 +436,39 @@ const UserProfile = () => {
     }
   };
 
+  // Click outside to close post menus
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.up-post-menu-container')) {
+        setActiveMenuPostId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  // Handle post deletion
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to delete this post? This cannot be undone.")) {
+      return;
+    }
+    try {
+      await api.posts.deletePost(postId);
+      setUserPosts(prev => prev.filter(post => post.id !== postId));
+      toast.success("Post deleted successfully");
+    } catch (error: any) {
+      console.error("Failed to delete post:", error);
+      toast.error(error.message || "Failed to delete post");
+    }
+  };
+
+  // Copy post link
+  const handleCopyPostLink = (postId: string) => {
+    const url = `${window.location.origin}/feed#post-${postId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Post link copied to clipboard");
+  };
+
   // Toggle comments visibility
   const toggleComments = (postId: string) => {
     setExpandedComments(prev => {
@@ -602,6 +638,14 @@ const UserProfile = () => {
         .up-post-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: white; }
         .up-post-username { font-size: 14px; font-weight: 600; color: var(--ink); }
         .up-post-time { font-size: 12px; color: var(--ink-muted); }
+        .up-post-menu-container { position: relative; }
+        .up-more-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid transparent; background: transparent; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); cursor: pointer; transition: all 0.15s ease; }
+        .up-more-btn:hover { background: var(--surface); color: var(--ink); border-color: var(--border); }
+        .up-post-dropdown-menu { position: absolute; right: 0; top: calc(100% + 4px); min-width: 150px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1); padding: 6px; z-index: 50; display: flex; flex-direction: column; gap: 2px; }
+        .up-post-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border-radius: 6px; border: none; background: transparent; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; text-align: left; transition: all 0.15s ease; }
+        .up-post-menu-item:hover { background: var(--surface); color: var(--ink); }
+        .up-post-menu-item-delete { color: #ef4444; }
+        .up-post-menu-item-delete:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
         .up-post-text { font-size: 15px; color: var(--ink); line-height: 1.6; white-space: pre-wrap; }
         .up-post-actions { display: flex; align-items: center; gap: 4px; padding-top: 14px; border-top: 1px solid var(--border); }
         .up-action-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--ink-secondary); background: none; border: none; cursor: pointer; transition: all 0.15s; }
@@ -693,7 +737,7 @@ const UserProfile = () => {
                 <div className="up-avatar">
                   {userProfile.avatar ? (
                     <img 
-                      src={userProfile.avatar.startsWith('http') ? userProfile.avatar : `http://localhost:5000${userProfile.avatar}`} 
+                      src={getImageUrl(userProfile.avatar)} 
                       alt={userProfile.name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                     />
@@ -906,8 +950,8 @@ const UserProfile = () => {
                       <div className="up-post-avatar">
                         {post.author?.avatar ? (
                           <img 
-                            src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:5000${post.author.avatar}`} 
-                            alt={post.author.name}
+                            src={getImageUrl(post.author?.avatar)} 
+                            alt={post.author?.name}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                           />
                         ) : (
@@ -918,6 +962,46 @@ const UserProfile = () => {
                         <div className="up-post-username">{post.author?.name || 'Unknown'}</div>
                         <div className="up-post-time">@{post.author?.username || 'unknown'}</div>
                       </div>
+                    </div>
+
+                    <div className="up-post-menu-container">
+                      <button 
+                        className="up-more-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuPostId(prev => prev === post.id ? null : post.id);
+                        }}
+                        title="Post options"
+                        aria-label="Post options"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+
+                      {activeMenuPostId === post.id && (
+                        <div className="up-post-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            className="up-post-menu-item"
+                            onClick={() => {
+                              setActiveMenuPostId(null);
+                              handleCopyPostLink(post.id);
+                            }}
+                          >
+                            <Copy size={14} />
+                            <span>Copy Link</span>
+                          </button>
+
+                          <button 
+                            className="up-post-menu-item up-post-menu-item-delete"
+                            onClick={() => {
+                              setActiveMenuPostId(null);
+                              handleDeletePost(post.id);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete Post</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="up-post-content">
@@ -976,7 +1060,7 @@ const UserProfile = () => {
                     {post.type === 'image' && post.imageUrl && (
                       <>
                         <img 
-                          src={post.imageUrl?.startsWith('http') ? post.imageUrl : `http://localhost:5000${post.imageUrl}`} 
+                          src={getImageUrl(post.imageUrl)} 
                           alt="Post image" 
                           className="up-post-image" 
                         />
@@ -1066,7 +1150,7 @@ const UserProfile = () => {
                             }}>
                               {comment.author?.avatar ? (
                                 <img 
-                                  src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:5000${comment.author.avatar}`} 
+                                  src={getImageUrl(comment.author.avatar)} 
                                   alt={comment.author.name}
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
@@ -1230,7 +1314,7 @@ const UserProfile = () => {
                   </div>
                   {selectedImage && (
                     <>
-                      <img src={selectedImage?.startsWith('http') ? selectedImage : `http://localhost:5000${selectedImage}`} alt="Preview" className="up-image-preview" />
+                      <img src={getImageUrl(selectedImage)} alt="Preview" className="up-image-preview" />
                       {/* Caption input with AI support */}
                       <textarea
                         className="up-textarea"
